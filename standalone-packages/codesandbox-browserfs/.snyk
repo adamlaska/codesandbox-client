@@ -1,0 +1,158 @@
+# Snyk (https://snyk.io) policy file, patches or ignores known vulnerabilities.
+version: v1.25.0
+ignore: {}
+# patches apply the minimum changes required to fix a vulnerability
+patch:
+  'npm:debug:20170905':
+    - karma > body-parser > debug:
+        patched: '2022-08-13T23:28:53.453Z'
+    - karma > connect > debug:
+        patched: '2022-08-13T23:28:53.453Z'
+    - webpack-dev-server > portfinder > debug:
+        patched: '2022-08-13T23:28:53.453Z'
+    - webpack > micromatch > snapdragon > debug:
+        patched: '2022-08-13T23:28:53.453Z'
+    - karma > connect > finalhandler > debug:
+        patched: '2022-08-13T23:28:53.453Z'
+    - webpack > micromatch > braces > snapdragon > debug:
+        patched: '2022-08-13T23:28:53.453Z'
+    - karma > chokidar > braces > snapdragon > debug:
+        patched: '2022-08-13T23:28:53.453Z'
+    - webpack-dev-server > chokidar > braces > snapdragon > debug:
+        patched: '2022-08-13T23:28:53.453Z'
+    - webpack > micromatch > extglob > snapdragon > debug:
+        patched: '2022-08-13T23:28:53.453Z'
+    - webpack > micromatch > nanomatch > snapdragon > debug:
+        patched: '2022-08-13T23:28:53.453Z'
+    - rollup-plugin-buble > rollup-pluginutils > micromatch > snapdragon > debug:
+        patched: '2022-08-13T23:28:53.453Z'
+    - rollup-plugin-node-resolve > rollup-pluginutils > micromatch > snapdragon > debug:
+        patched: '2022-08-13T23:28:53.453Z'
+    - webpack-cli > findup-sync > micromatch > snapdragon > debug:
+        patched: '2022-08-13T23:28:53.453Z'
+    - webpack-dev-server > http-proxy-middleware > micromatch > snapdragon > debug:
+        patched: '2022-08-13T23:28:53.453Z'
+    - rollup-plugin-buble > rollup-pluginutils > micromatch > braces > snapdragon > debug:
+        patched: '2022-08-13T23:28:53.453Z'
+    - rollup-plugin-node-resolve > rollup-pluginutils > micromatch > braces > snapdragon > debug:
+        patched: '2022-08-13T23:28:53.453Z'
+    - webpack-cli > findup-sync > micromatch > braces > snapdragon > debug:
+        patched: '2022-08-13T23:28:53.453Z'
+    - webpack-dev-server > http-proxy-middleware > micromatch > braces > snapdragon > debug:
+        patched: '2022-08-13T23:28:53.453Z'
+    - webpack > watchpack > chokidar > braces > snapdragon > debug:
+        patched: '2022-08-13T23:28:53.453Z'
+    - webpack > micromatch > extglob > expand-brackets > snapdragon > debug:
+        patched: '2022-08-13T23:28:53.453Z'
+    - rollup-plugin-buble > rollup-pluginutils > micromatch > extglob > snapdragon > debug:
+        patched: '2022-08-13T23:28:53.453Z'
+    - rollup-plugin-node-resolve > rollup-pluginutils > micromatch > extglob > snapdragon > debug:
+        patched: '2022-08-13T23:28:53.453Z'
+    - webpack-cli > findup-sync > micromatch > extglob > snapdragon > debug:
+        patched: '2022-08-13T23:28:53.453Z'
+    - webpack-dev-server > http-proxy-middleware > micromatch > extglob > snapdragon > debug:
+        patched: '2022-08-13T23:28:53.453Z'
+    - rollup-plugin-buble > rollup-pluginutils > micromatch > nanomatch > snapdragon > debug:
+        patched: '2022-08-13T23:28:53.453Z'
+    - rollup-plugin-node-resolve > rollup-pluginutils > micromatch > nanomatch > snapdragon > debug:
+        patched: '2022-08-13T23:28:53.453Z'
+    - webpack-cli > findup-sync > micromatch > nanomatch > snapdragon > debug:
+        patched: '2022-08-13T23:28:53.453Z'
+    - webpack-dev-server > http-proxy-middleware > micromatch > nanomatch > snapdragon > debug:
+        patched: '2022-08-13T23:28:53.453Z'
+    - karma > chokidar > anymatch > micromatch > snapdragon > debug:
+        patched: '2022-08-13T23:28:53.453Z'
+    - webpack-dev-server > chokidar > anymatch > micromatch > snapdragon > debug:
+        patched: '2022-08-13T23:28:53.453Z'
+    - karma > chokidar > readdirp > micromatch > snapdragon > debug:
+        patched: '2022-08-13T23:28:53.453Z'
+    - webpack-dev-server > chokidar > readdirp > micromatch > snapdragon > debug:
+        patched: '2022-08-13T23:28:53.453Z'
+    - karma > chokidar > anymatch > micromatch > braces > snapdragon > debug:
+        patched: '2022-08-13T23:28:53.453Z'
+    - webpack-dev-server > chokidar > anymatch > micromatch > braces > snapdragon > debug:
+        patched: '2022-08-13T23:28:53.453Z'
+    - karma > chokidar > readdirp > micromatch > braces > snapdragon > debug:
+        patched: '2022-08-13T23:28:53.453Z'
+    - webpack-dev-server > chokidar > readdirp > micromatch > braces > snapdragon > debug:
+        patched: '2022-08-13T23:28:53.453Z'
+    - rollup-plugin-buble > rollup-pluginutils > micromatch > extglob > expand-brackets > snapdragon > debug:
+        patched: '2022-08-13T23:28:53.453Z'
+    - rollup-plugin-node-resolve > rollup-pluginutils > micromatch > extglob > expand-brackets > snapdragon > debug:
+        patched: '2022-08-13T23:28:53.453Z'
+    - webpack-cli > findup-sync > micromatch > extglob > expand-brackets > snapdragon > debug:
+        patched: '2022-08-13T23:28:53.453Z'
+    - webpack-dev-server > http-proxy-middleware > micromatch > extglob > expand-brackets > snapdragon > debug:
+        patched: '2022-08-13T23:28:53.453Z'
+    - karma > chokidar > anymatch > micromatch > extglob > snapdragon > debug:
+        patched: '2022-08-13T23:28:53.453Z'
+    - webpack-dev-server > chokidar > anymatch > micromatch > extglob > snapdragon > debug:
+        patched: '2022-08-13T23:28:53.453Z'
+    - karma > chokidar > readdirp > micromatch > extglob > snapdragon > debug:
+        patched: '2022-08-13T23:28:53.453Z'
+    - webpack-dev-server > chokidar > readdirp > micromatch > extglob > snapdragon > debug:
+        patched: '2022-08-13T23:28:53.453Z'
+    - karma > chokidar > anymatch > micromatch > nanomatch > snapdragon > debug:
+        patched: '2022-08-13T23:28:53.453Z'
+    - webpack-dev-server > chokidar > anymatch > micromatch > nanomatch > snapdragon > debug:
+        patched: '2022-08-13T23:28:53.453Z'
+    - karma > chokidar > readdirp > micromatch > nanomatch > snapdragon > debug:
+        patched: '2022-08-13T23:28:53.453Z'
+    - webpack-dev-server > chokidar > readdirp > micromatch > nanomatch > snapdragon > debug:
+        patched: '2022-08-13T23:28:53.453Z'
+    - webpack > watchpack > chokidar > anymatch > micromatch > snapdragon > debug:
+        patched: '2022-08-13T23:28:53.453Z'
+    - webpack > watchpack > chokidar > readdirp > micromatch > snapdragon > debug:
+        patched: '2022-08-13T23:28:53.453Z'
+    - webpack > watchpack > chokidar > anymatch > micromatch > braces > snapdragon > debug:
+        patched: '2022-08-13T23:28:53.453Z'
+    - webpack > watchpack > chokidar > readdirp > micromatch > braces > snapdragon > debug:
+        patched: '2022-08-13T23:28:53.453Z'
+    - karma > chokidar > anymatch > micromatch > extglob > expand-brackets > snapdragon > debug:
+        patched: '2022-08-13T23:28:53.453Z'
+    - webpack-dev-server > chokidar > anymatch > micromatch > extglob > expand-brackets > snapdragon > debug:
+        patched: '2022-08-13T23:28:53.453Z'
+    - karma > chokidar > readdirp > micromatch > extglob > expand-brackets > snapdragon > debug:
+        patched: '2022-08-13T23:28:53.453Z'
+    - webpack-dev-server > chokidar > readdirp > micromatch > extglob > expand-brackets > snapdragon > debug:
+        patched: '2022-08-13T23:28:53.453Z'
+    - webpack > watchpack > chokidar > anymatch > micromatch > extglob > snapdragon > debug:
+        patched: '2022-08-13T23:28:53.453Z'
+    - webpack > watchpack > chokidar > readdirp > micromatch > extglob > snapdragon > debug:
+        patched: '2022-08-13T23:28:53.453Z'
+    - webpack > watchpack > chokidar > anymatch > micromatch > nanomatch > snapdragon > debug:
+        patched: '2022-08-13T23:28:53.453Z'
+    - webpack > watchpack > chokidar > readdirp > micromatch > nanomatch > snapdragon > debug:
+        patched: '2022-08-13T23:28:53.453Z'
+    - webpack > watchpack > chokidar > anymatch > micromatch > extglob > expand-brackets > snapdragon > debug:
+        patched: '2022-08-13T23:28:53.453Z'
+    - webpack > watchpack > chokidar > readdirp > micromatch > extglob > expand-brackets > snapdragon > debug:
+        patched: '2022-08-13T23:28:53.453Z'
+  'npm:extend:20180424':
+    - karma > dom-serialize > extend:
+        patched: '2022-08-13T23:28:53.453Z'
+  SNYK-JS-LODASH-567746:
+    - archiver > lodash:
+        patched: '2022-08-13T23:28:53.453Z'
+    - karma-ie-launcher > lodash:
+        patched: '2022-08-13T23:28:53.453Z'
+    - archiver > archiver-utils > lodash:
+        patched: '2022-08-13T23:28:53.453Z'
+    - archiver > async > lodash:
+        patched: '2022-08-13T23:28:53.453Z'
+    - source-map-loader > async > lodash:
+        patched: '2022-08-13T23:28:53.453Z'
+    - archiver > zip-stream > lodash:
+        patched: '2022-08-13T23:28:53.453Z'
+    - karma > combine-lists > lodash:
+        patched: '2022-08-13T23:28:53.453Z'
+    - archiver > zip-stream > archiver-utils > lodash:
+        patched: '2022-08-13T23:28:53.453Z'
+    - karma > lodash:
+        patched: '2022-08-13T23:28:53.453Z'
+    - karma-coverage > lodash:
+        patched: '2022-08-13T23:28:53.453Z'
+    - typedoc > lodash:
+        patched: '2022-08-13T23:28:53.453Z'
+    - webpack-dev-server > http-proxy-middleware > lodash:
+        patched: '2022-08-13T23:28:53.453Z'
