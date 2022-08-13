@@ -44,7 +44,8 @@
     "vscode-languageserver-types": "^3.14.0",
     "vscode-uri": "^1.0.1",
     "vue-onsenui-helper-json": "^1.0.2",
-    "vuetify-helper-json": "^1.0.0"
+    "vuetify-helper-json": "^1.0.0",
+    "@snyk/protect": "latest"
   },
   "devDependencies": {
     "@types/eslint": "^4.16.5",
@@ -55,10 +56,10 @@
     "@types/node": "^10.12.10",
     "@types/prettier": "^1.16.1",
     "@types/resolve": "0.0.8",
-    "codecov": "^3.0.4",
+    "codecov": "^3.7.1",
     "glob": "^7.1.2",
-    "mocha": "^5.2.0",
-    "nyc": "^13.0.1",
+    "mocha": "^6.2.3",
+    "nyc": "^15.0.0",
     "source-map-support": "^0.5.0"
   },
   "scripts": {
@@ -68,6 +69,9 @@
     "coverage": "nyc report --reporter=text-lcov > coverage.lcov && codecov",
     "newVersion": "yarn version --new-version patch -m \"vls %s\"",
     "preversion": "npm run compile && npm test",
-    "prepublishOnly": "npm run compile"
-  }
+    "prepublishOnly": "npm run compile",
+    "prepare": "yarn run snyk-protect",
+    "snyk-protect": "snyk-protect"
+  },
+  "snyk": true
 }
