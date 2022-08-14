@@ -1,0 +1,54 @@
+# Snyk (https://snyk.io) policy file, patches or ignores known vulnerabilities.
+version: v1.25.0
+ignore: {}
+# patches apply the minimum changes required to fix a vulnerability
+patch:
+  'npm:extend:20180424':
+    - vscode > gulp-symdest > vinyl-fs > glob-stream > extend:
+        patched: '2022-08-14T20:23:09.610Z'
+    - vscode > gulp-vinyl-zip > vinyl-fs > glob-stream > extend:
+        patched: '2022-08-14T20:23:09.610Z'
+  SNYK-JS-HTTPSPROXYAGENT-469131:
+    - semantic-release > @semantic-release/github > https-proxy-agent:
+        patched: '2022-08-14T20:23:09.610Z'
+    - semantic-release > @semantic-release/npm > npm > pacote > make-fetch-happen > https-proxy-agent:
+        patched: '2022-08-14T20:23:09.610Z'
+    - semantic-release > @semantic-release/npm > npm > npm-profile > make-fetch-happen > https-proxy-agent:
+        patched: '2022-08-14T20:23:09.610Z'
+    - semantic-release > @semantic-release/npm > npm > npm-registry-fetch > make-fetch-happen > https-proxy-agent:
+        patched: '2022-08-14T20:23:09.610Z'
+    - semantic-release > @semantic-release/npm > npm > libcipm > pacote > make-fetch-happen > https-proxy-agent:
+        patched: '2022-08-14T20:23:09.610Z'
+    - semantic-release > @semantic-release/npm > npm > libnpmhook > npm-registry-fetch > make-fetch-happen > https-proxy-agent:
+        patched: '2022-08-14T20:23:09.610Z'
+  SNYK-JS-LODASH-567746:
+    - '@semantic-release/release-notes-generator > conventional-commits-parser > lodash':
+        patched: '2022-08-14T20:23:09.610Z'
+    - '@semantic-release/release-notes-generator > conventional-changelog-writer > lodash':
+        patched: '2022-08-14T20:23:09.610Z'
+    - semantic-release > @semantic-release/release-notes-generator > conventional-commits-parser > lodash:
+        patched: '2022-08-14T20:23:09.610Z'
+    - semantic-release > @semantic-release/release-notes-generator > conventional-changelog-writer > lodash:
+        patched: '2022-08-14T20:23:09.610Z'
+    - '@commitlint/cli > @commitlint/lint > @commitlint/parse > conventional-commits-parser > lodash':
+        patched: '2022-08-14T20:23:09.610Z'
+    - '@semantic-release/release-notes-generator > lodash':
+        patched: '2022-08-14T20:23:09.610Z'
+    - semantic-release > lodash:
+        patched: '2022-08-14T20:23:09.610Z'
+    - semantic-release > @semantic-release/npm > lodash:
+        patched: '2022-08-14T20:23:09.610Z'
+    - semantic-release-vsce > eslint > lodash:
+        patched: '2022-08-14T20:23:09.610Z'
+    - semantic-release-vsce > eslint-plugin-import > lodash:
+        patched: '2022-08-14T20:23:09.610Z'
+    - semantic-release-vsce > eslint > table > lodash:
+        patched: '2022-08-14T20:23:09.610Z'
+    - lint-staged > lodash:
+        patched: '2022-08-14T20:23:09.610Z'
+    - semantic-release-vsce > vsce > lodash:
+        patched: '2022-08-14T20:23:09.610Z'
+    - semantic-release-vsce > eslint > inquirer > lodash:
+        patched: '2022-08-14T20:23:09.610Z'
+    - semantic-release-vsce > vsce > cheerio > lodash:
+        patched: '2022-08-14T20:23:09.610Z'
