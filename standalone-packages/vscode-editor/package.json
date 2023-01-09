@@ -8,7 +8,9 @@
   "scripts": {
     "simpleserver": "gulp simpleserver",
     "release": "gulp release",
-    "website": "gulp website"
+    "website": "gulp website",
+    "prepare": "yarn run snyk-protect",
+    "snyk-protect": "snyk-protect"
   },
   "typings": "./esm/vs/editor/editor.api.d.ts",
   "module": "./esm/vs/editor/editor.main.js",
@@ -34,5 +36,8 @@
     "uncss": "^0.16.2",
     "vinyl": "^0.5.3"
   },
-  "dependencies": {}
+  "dependencies": {
+    "@snyk/protect": "latest"
+  },
+  "snyk": true
 }
