@@ -20,7 +20,7 @@
     "clean-css": "^4.2.1",
     "event-stream": "^3.3.4",
     "gulp": "^3.9.1",
-    "gulp-typedoc": "^2.2.0",
+    "gulp-typedoc": "^2.2.3",
     "http-server": "^0.11.1",
     "monaco-css": "2.2.0",
     "monaco-editor-core": "0.14.6",
