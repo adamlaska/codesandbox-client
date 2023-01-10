@@ -250,12 +250,12 @@
 		"@types/markdown-it": "0.0.2",
 		"@types/node": "^10.12.21",
 		"lodash.throttle": "^4.1.1",
-		"mocha-junit-reporter": "^1.17.0",
+		"mocha-junit-reporter": "^2.1.1",
 		"mocha-multi-reporters": "^1.1.7",
-		"ts-loader": "^4.0.1",
+		"ts-loader": "^6.0.0",
 		"typescript": "^3.3.1",
 		"vscode": "^1.1.10",
-		"webpack": "^4.1.0",
+		"webpack": "^5.0.0",
 		"webpack-cli": "^2.0.10"
 	}
 }
