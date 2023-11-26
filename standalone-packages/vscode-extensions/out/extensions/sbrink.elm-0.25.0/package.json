@@ -91,7 +91,7 @@
 		"mocha": "^2.3.3",
 		"prettier": "^1.5.3",
 		"typescript": "^2.4.0",
-		"vscode": "1.1.0"
+		"vscode": "1.1.31"
 	},
 	"dependencies": {
 		"elm-module-parser": "0.1.12",
@@ -99,7 +99,7 @@
 		"lodash": "^4.17.11",
 		"request": "^2.69.0",
 		"rimraf": "^2.5.2",
-		"tslint": "^5.4.3",
+		"tslint": "^5.16.0",
 		"vscode-uri": "^1.0.0",
 		"ws": "^3.0.0"
 	},
