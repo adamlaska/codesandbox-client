@@ -4,9 +4,9 @@
   "main": "index.js",
   "license": "MIT",
   "dependencies": {
-    "@codesandbox/common": "^1.0.8",
+    "@codesandbox/common": "^1.0.9",
     "axios": "^0.19.2",
-    "babel-plugin-emotion": "^9.2.10",
+    "babel-plugin-emotion": "^9.2.11",
     "emotion": "^9.2.10",
     "gsap": "^2.0.2",
     "preact": "^8.3.1",
@@ -24,8 +24,8 @@
     "babel-preset-flow": "^6.23.0",
     "babel-preset-react": "^6.24.1",
     "babel-runtime": "^6.26.0",
-    "cssnano": "^4.0.5",
-    "parcel-bundler": "^1.9.7",
+    "cssnano": "^5.0.0",
+    "parcel-bundler": "^1.12.4",
     "rimraf": "^2.6.2"
   },
   "scripts": {
