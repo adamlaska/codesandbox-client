@@ -46,7 +46,7 @@
     "dropbox": "~4.0.9",
     "express": "~4.16.3",
     "isomorphic-fetch": "~2.2.1",
-    "karma": "~3.0.0",
+    "karma": "~5.0.0",
     "karma-chrome-launcher": "^2.2.0",
     "karma-coverage": "~1.1.2",
     "karma-firefox-launcher": "~1.1",
@@ -66,12 +66,12 @@
     "rollup-plugin-node-resolve": "~5.0.0",
     "rollup-plugin-sourcemaps": "~0.4.2",
     "source-map-loader": "~0.2.3",
-    "tslint": "~5.11.0",
+    "tslint": "~5.16.0",
     "typedoc": "~0.11.1",
     "typescript": "~3.0.1",
-    "webpack": "~4.31.0",
-    "webpack-cli": "~3.3.2",
-    "webpack-dev-server": "~3.3.1"
+    "webpack": "~5.0.0",
+    "webpack-cli": "~4.0.0",
+    "webpack-dev-server": "~4.7.3"
   },
   "scripts": {
     "lint:old": "tslint -c src/tslint.json --project src/tsconfig.json",
