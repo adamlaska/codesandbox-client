@@ -37,7 +37,7 @@
 	},
 	"devDependencies": {
 		"nodemon": "^1.14.12",
-		"vsce": "^1.36.2"
+		"vsce": "^2.15.0"
 	},
 	"__metadata": {
 		"id": "fb374ce1-5343-46c8-a425-900fdad15523",
