@@ -190,8 +190,8 @@
     "ts-loader": "^5.3.3",
     "typescript": "^3.1.6",
     "vscode": "^1.1.21",
-    "webpack": "^4.29.3",
-    "webpack-cli": "^3.2.3"
+    "webpack": "^5.0.0",
+    "webpack-cli": "^4.0.0"
   },
   "__metadata": {
     "id": "dc489f46-520d-4556-ae85-1f9eab3c412d",
