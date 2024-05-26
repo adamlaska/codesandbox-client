@@ -91,7 +91,7 @@
     "babel-eslint": "10.0.2",
     "concurrently": "^4.1.0",
     "cross-env": "^6.0.0",
-    "eslint": "5.16.0",
+    "eslint": "9.0.0",
     "eslint-config-airbnb": "^18.0.1",
     "eslint-config-prettier": "^6.3.0",
     "eslint-import-resolver-webpack": "^0.8.1",
