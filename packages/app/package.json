@@ -300,7 +300,7 @@
     "acorn-dynamic-import": "^4.0.0",
     "babel-jest": "^24.8.0",
     "babel-loader": "8.0.2",
-    "babel-plugin-codegen": "^1.2.0",
+    "babel-plugin-codegen": "^2.0.0",
     "babel-plugin-graphql-tag": "^2.1.0",
     "babel-plugin-lodash": "^3.3.4",
     "babel-plugin-styled-components": "^1.10.7",
