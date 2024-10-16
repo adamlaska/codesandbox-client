@@ -21,7 +21,8 @@ import {
   SerializedTranspiledModule,
 } from './transpiled-module/transpiled-module';
 import { Preset } from './preset';
-import fetchModule, {
+import {
+  fetchModule,
   setCombinedMetas,
   combinedMetas,
 } from './npm/dynamic/fetch-npm-module';
@@ -247,9 +248,6 @@ export default class Manager implements IEvaluator {
 
     getGlobal().manager = this;
     if (process.env.NODE_ENV === 'development') {
-      // eslint-disable-next-line no-console
-      console.log(this);
-
       // Initialize benchmark logic
       getGlobal().Benchmark = generateBenchmarkInterface(this);
     }
@@ -508,6 +506,14 @@ export default class Manager implements IEvaluator {
   }
 
   addTranspiledModule(module: Module, query: string = ''): TranspiledModule {
+    if (
+      this.transpiledModules[module.path] &&
+      this.transpiledModules[module.path].tModules[query] &&
+      this.transpiledModules[module.path].module.code === module.code
+    ) {
+      // fix: loaderContext.emitModule() may replace tModule directly
+      return this.transpiledModules[module.path].tModules[query];
+    }
     if (!this.transpiledModules[module.path]) {
       this.addModule(module);
     }
@@ -583,6 +589,8 @@ export default class Manager implements IEvaluator {
     delete this.transpiledModules[module.path];
 
     triggerFileWatch(module.path, 'rename');
+
+    this.markHardReload();
   }
 
   moveModule(module: Module, newPath: string) {
@@ -1080,7 +1088,7 @@ export default class Manager implements IEvaluator {
         ignoredExtensions
       );
       return transpiledModule;
-    } catch (e) {
+    } catch (e: any) {
       if (e.type === 'module-not-found' && e.isDependency) {
         const { queryPath } = splitQueryFromPath(path);
         return this.downloadDependency(
@@ -1246,7 +1254,9 @@ export default class Manager implements IEvaluator {
     const tModulesToUpdate = modulesToUpdate.map(m => this.updateModule(m));
 
     if (tModulesToUpdate.length > 0 && this.configurations.sandbox) {
-      this.hardReload = this.configurations.sandbox.parsed.hardReloadOnChange;
+      this.hardReload =
+        this.hardReload ||
+        this.configurations.sandbox.parsed.hardReloadOnChange;
     }
 
     const modulesWithErrors = this.getTranspiledModules().filter(t => {

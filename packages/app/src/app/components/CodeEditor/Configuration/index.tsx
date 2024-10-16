@@ -3,7 +3,7 @@ import { TextOperation } from 'ot';
 import { Module } from '@codesandbox/common/lib/types';
 import getUI from '@codesandbox/common/lib/templates/configuration/ui';
 import { getType } from 'app/utils/get-type';
-import { EntryIcons } from 'app/pages/Sandbox/Editor/Workspace/Files/DirectoryEntry/Entry/EntryIcons';
+import { EntryIcons } from 'app/components/EntryIcons';
 import Tooltip from '@codesandbox/common/lib/components/Tooltip';
 import { ConfigurationFile } from '@codesandbox/common/lib/templates/configuration/types';
 
@@ -17,9 +17,7 @@ type Props = EditorProps & {
   toggleConfigUI: () => void;
 };
 
-export class Configuration
-  extends React.PureComponent<Props>
-  implements Editor {
+export class Configuration extends React.PureComponent<Props> {
   disposeInitializer?: Function;
 
   currentModule: Module;

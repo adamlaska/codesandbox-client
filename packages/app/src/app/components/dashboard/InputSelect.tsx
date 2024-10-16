@@ -8,14 +8,14 @@ const StyledSelect = styled.select`
   appearance: none;
 
   width: 100%;
-  padding: 12px 40px 12px 16px;
+  padding: 8px 40px 8px 16px;
   background-color: #2a2a2a;
   font-family: 'Inter', sans-serif;
   font-size: 16px;
   color: #e5e5e5;
   line-height: 24px;
   border: none;
-  border-radius: 2px;
+  border-radius: 4px;
 
   &:hover {
     box-shadow: 0 0 0 2px #e5e5e51a;

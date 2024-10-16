@@ -4,20 +4,21 @@ import React, { FunctionComponent } from 'react';
 
 import { useAppState, useActions } from 'app/overmind';
 
+import { useWorkspaceSubscription } from 'app/hooks/useWorkspaceSubscription';
 import { Alert } from '../Common/Alert';
 
 export const SurveyModal: FunctionComponent = () => {
   const { modalClosed } = useActions();
-  const { isPatron, user, activeTeamInfo } = useAppState();
-  const isPro = Boolean(activeTeamInfo?.subscription);
+  const { user } = useAppState();
+  const { isPro } = useWorkspaceSubscription();
 
   const initializeTypeform = (el?: HTMLDivElement) => {
     if (el) {
       typeformEmbed.makeWidget(
         el,
-        `https://codesandbox.typeform.com/to/LYbjII?userid=${hash(
+        `https://form.typeform.com/to/LYbjII?userid=${hash(
           user.id
-        )}&ispatron=${isPatron}&ispro=${isPro}`,
+        )}&ispro=${isPro}`,
         {
           opacity: 0,
           hideScrollbars: true,

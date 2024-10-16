@@ -1,6 +1,6 @@
 import React from 'react';
 import { Menu } from '@codesandbox/components';
-import { BranchFragment as Branch } from 'app/graphql/types';
+import { BranchFragment as Branch, ProjectFragment } from 'app/graphql/types';
 import {
   githubRepoUrl,
   v2BranchUrl,
@@ -21,13 +21,17 @@ export const BranchMenu: React.FC<BranchMenuProps> = ({ branch, page }) => {
     removeRepositoryFromTeam,
   } = useActions().dashboard;
   const {
-    activeTeam,
     dashboard: { removingBranch, removingRepository },
   } = useAppState();
   const { visible, setVisibility, position } = React.useContext(Context);
 
   const { id, name, project, contribution } = branch;
-  const branchUrl = v2BranchUrl({ name, project });
+  const branchUrl = v2BranchUrl({
+    owner: project.repository.owner,
+    repoName: project.repository.name,
+    branchName: name,
+    workspaceId: project.team?.id || null,
+  });
 
   const { name: repoName, owner, defaultBranch } = project.repository;
 
@@ -43,6 +47,7 @@ export const BranchMenu: React.FC<BranchMenuProps> = ({ branch, page }) => {
   const history = useHistory();
 
   const canRemoveBranch = name !== defaultBranch;
+  const branchIsOnGitHub = branch.upstream;
 
   return (
     <Menu.ContextMenu
@@ -61,7 +66,7 @@ export const BranchMenu: React.FC<BranchMenuProps> = ({ branch, page }) => {
       <MenuItem onSelect={() => window.open(branchUrl, '_blank')}>
         Open branch in a new tab
       </MenuItem>
-      {!contribution && (
+      {branchIsOnGitHub && !contribution && (
         <MenuItem onSelect={() => window.open(githubUrl, '_blank')}>
           Open on GitHub
         </MenuItem>
@@ -93,10 +98,8 @@ export const BranchMenu: React.FC<BranchMenuProps> = ({ branch, page }) => {
           onSelect={() =>
             !removingRepository &&
             removeRepositoryFromTeam({
-              owner,
-              name: repoName,
-              teamId: activeTeam,
               page,
+              project: project as ProjectFragment,
             })
           }
         >

@@ -163,6 +163,7 @@ export default class App extends React.PureComponent<
             headers: {
               'Content-Type': 'application/json',
               Authorization: `Bearer ${this.jwt()}`,
+              'x-codesandbox-client': 'legacy-embed',
             },
           }
         )
@@ -251,6 +252,12 @@ export default class App extends React.PureComponent<
     const jwt = this.jwt();
     track('Embed - Toggle Like');
 
+    const sandboxId = this.state.sandbox.id;
+    if (sandboxId.includes('/')) {
+      // The sandbox id comes from a message that's sent to the window,
+      // so we can't trust it. We'll check if there's a / in there.
+      return;
+    }
     if (this.state.sandbox.userLiked && jwt) {
       this.setState(s => ({
         sandbox: {
@@ -259,14 +266,15 @@ export default class App extends React.PureComponent<
           likeCount: s.sandbox.likeCount - 1,
         },
       }));
-      fetch(`/api/v1/sandboxes/${this.state.sandbox.id}/likes`, {
+      fetch(`/api/v1/sandboxes/${sandboxId}/likes`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${jwt}`,
+          'x-codesandbox-client': 'legacy-embed',
         },
         body: JSON.stringify({
-          id: this.state.sandbox.id,
+          id: sandboxId,
         }),
       })
         .then(x => x.json())
@@ -296,11 +304,12 @@ export default class App extends React.PureComponent<
           likeCount: s.sandbox.likeCount + 1,
         },
       }));
-      fetch(`/api/v1/sandboxes/${this.state.sandbox.id}/likes`, {
+      fetch(`/api/v1/sandboxes/${sandboxId}/likes`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${jwt}`,
+          'x-codesandbox-client': 'legacy-embed',
         },
       })
         .then(x => x.json())

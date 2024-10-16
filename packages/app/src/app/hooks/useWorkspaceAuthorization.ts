@@ -1,38 +1,69 @@
 import { TeamMemberAuthorization } from 'app/graphql/types';
 import { useAppState } from 'app/overmind';
 
-export const useWorkspaceAuthorization = () => {
+type WorkspaceAuthorizationReturn =
+  | {
+      isAdmin: undefined;
+      isBillingManager: undefined;
+      isPrimarySpace: undefined;
+      isTeamAdmin: undefined;
+      isTeamEditor: undefined;
+      isTeamViewer: undefined;
+      userRole: undefined;
+    }
+  | {
+      isAdmin: boolean;
+      isBillingManager: boolean;
+      isPrimarySpace: boolean;
+      isTeamAdmin: boolean;
+      isTeamEditor: boolean;
+      isTeamViewer: boolean;
+      userRole: TeamMemberAuthorization;
+    };
+
+export const useWorkspaceAuthorization = (): WorkspaceAuthorizationReturn => {
   const {
+    activeTeamInfo,
+    user,
     activeTeam,
-    personalWorkspaceId,
-    activeWorkspaceAuthorization,
+    primaryWorkspaceId,
   } = useAppState();
 
+  const { authorization, teamManager } =
+    activeTeamInfo?.userAuthorizations.find(auth => auth.userId === user?.id) ??
+    {};
+
+  if (!authorization) {
+    return {
+      isAdmin: undefined,
+      isBillingManager: undefined,
+      isPrimarySpace: undefined,
+      isTeamAdmin: undefined,
+      isTeamEditor: undefined,
+      isTeamViewer: undefined,
+      userRole: undefined,
+    };
+  }
+
   /**
-   * Personal states
+   * TODO: Drop the team prefix from all these flags and replace all ocurrences
    */
 
-  const isPersonalSpace = activeTeam === personalWorkspaceId;
+  const isAdmin = authorization === TeamMemberAuthorization.Admin;
 
-  /**
-   * Team states
-   */
+  const isTeamAdmin = isAdmin;
 
-  const isTeamSpace = activeTeam !== null && !isPersonalSpace;
+  const isTeamEditor = authorization === TeamMemberAuthorization.Write;
 
-  const isTeamAdmin =
-    isTeamSpace &&
-    activeWorkspaceAuthorization === TeamMemberAuthorization.Admin;
-
-  const isTeamEditor =
-    isTeamSpace &&
-    activeWorkspaceAuthorization === TeamMemberAuthorization.Write;
+  const isTeamViewer = authorization === TeamMemberAuthorization.Read;
 
   return {
-    isPersonalSpace,
-    isTeamSpace,
+    isBillingManager: Boolean(teamManager) || isAdmin,
+    isAdmin,
+    isPrimarySpace: activeTeam === primaryWorkspaceId,
     isTeamAdmin,
     isTeamEditor,
-    userRole: activeWorkspaceAuthorization,
+    isTeamViewer,
+    userRole: authorization ?? undefined,
   };
 };

@@ -1,45 +1,57 @@
 import {
-  curatorUrl,
-  dashboardUrl,
   profileUrl,
-  searchUrl,
   docsUrl,
+  csbSite,
 } from '@codesandbox/common/lib/utils/url-generator';
-import { Menu, Stack, Element, Icon, Text } from '@codesandbox/components';
+import { Menu, Stack, Icon, Text } from '@codesandbox/components';
 import { useAppState, useActions } from 'app/overmind';
 import React, { FunctionComponent } from 'react';
-import { TeamMemberAuthorization } from 'app/graphql/types';
 
 import { ProfileImage } from './elements';
 
 export const UserMenu: FunctionComponent & {
   Button: (props: any) => JSX.Element;
 } = props => {
-  const {
-    modalOpened,
-    signOutClicked,
-    files: { gotUploadedFiles },
-  } = useActions();
-  const {
-    user,
-    activeTeamInfo,
-    activeTeam,
-    activeWorkspaceAuthorization,
-  } = useAppState();
+  const { modalOpened, signOutClicked, gotUploadedFiles } = useActions();
+  const { user, environment } = useAppState();
 
   if (!user) {
-    return null;
+    return (
+      <Stack>
+        <Menu>
+          {props.children}
+          <Menu.List>
+            <Menu.Item
+              onClick={() => {
+                window.location.href = docsUrl();
+              }}
+            >
+              <Stack align="center" gap={2}>
+                <Icon name="documentation" size={16} />
+                <Text>Documentation</Text>
+              </Stack>
+            </Menu.Item>
+            <Menu.Divider />
+            <Menu.Item
+              onClick={() => {
+                window.open(`${csbSite()}/?from-app=1`);
+              }}
+            >
+              <Stack align="center" gap={2}>
+                <Icon name="external" size={16} />
+                <Text>codesandbox.io</Text>
+              </Stack>
+            </Menu.Item>
+          </Menu.List>
+        </Menu>
+      </Stack>
+    );
   }
 
-  const showCurator = user.curatorAt;
-
-  const showBecomePro = !activeTeamInfo?.subscription;
-  const showManageSubscription =
-    activeTeamInfo?.subscription &&
-    activeWorkspaceAuthorization === TeamMemberAuthorization.Admin;
+  const showStorage = !environment.isOnPrem;
 
   return (
-    <Element>
+    <Stack>
       <Menu>
         {props.children || (
           <ProfileImage
@@ -52,85 +64,68 @@ export const UserMenu: FunctionComponent & {
         )}
 
         <Menu.List>
-          <Menu.Link to={profileUrl(user.username)}>
+          <Menu.Item
+            onClick={() =>
+              modalOpened({
+                modal: 'preferences',
+                itemId: 'account',
+              })
+            }
+          >
+            <Stack align="center" gap={2}>
+              <Icon name="gear" size={16} />
+              <Text>User settings</Text>
+            </Stack>
+          </Menu.Item>
+
+          <Menu.Item
+            onClick={() => {
+              window.location.href = profileUrl(user.username);
+            }}
+          >
             <Stack align="center" gap={2}>
               <Icon name="profile" size={16} />
               <Text>Profile</Text>
             </Stack>
-          </Menu.Link>
+          </Menu.Item>
+
+          {showStorage && (
+            <Menu.Item onClick={() => gotUploadedFiles(null)}>
+              <Stack align="center" gap={2}>
+                <Icon name="folder" size={16} />
+                <Text>Storage</Text>
+              </Stack>
+            </Menu.Item>
+          )}
 
           <Menu.Divider />
 
-          <Menu.Link to={dashboardUrl()}>
-            <Stack align="center" gap={2}>
-              <Icon name="dashboard" size={16} />
-              <Text>Dashboard</Text>
-            </Stack>
-          </Menu.Link>
-
-          <Menu.Link href={docsUrl()}>
+          <Menu.Item
+            onClick={() => {
+              window.location.href = docsUrl();
+            }}
+          >
             <Stack align="center" gap={2}>
               <Icon name="documentation" size={16} />
               <Text>Documentation</Text>
             </Stack>
-          </Menu.Link>
-
-          <Menu.Link to={searchUrl()}>
-            <Stack align="center" gap={2}>
-              <Icon name="searchBubble" size={16} />
-              <Text>Search Sandboxes</Text>
-            </Stack>
-          </Menu.Link>
-
-          {showCurator && (
-            <Menu.Link to={curatorUrl()}>
-              <Stack align="center" gap={2}>
-                <Icon name="curator" size={16} />
-                <Text>Curator Dashboard</Text>
-              </Stack>
-            </Menu.Link>
-          )}
-
-          {showBecomePro && (
-            <Menu.Link to="/pro">
-              <Stack align="center" gap={2}>
-                <Icon name="proBadge" size={16} />
-                <Text>Upgrade to Pro</Text>
-              </Stack>
-            </Menu.Link>
-          )}
-
-          <Menu.Divider />
-
-          {showManageSubscription && (
-            <Menu.Link to={`/dashboard/settings?workspace=${activeTeam}`}>
-              <Stack align="center" gap={2}>
-                <Icon name="proBadge" size={16} />
-                <Text>Subscription</Text>
-              </Stack>
-            </Menu.Link>
-          )}
-
-          <Menu.Item onClick={() => gotUploadedFiles(null)}>
-            <Stack align="center" gap={2}>
-              <Icon name="folder" size={16} />
-              <Text>Storage</Text>
-            </Stack>
           </Menu.Item>
-
-          <Menu.Item onClick={() => modalOpened({ modal: 'preferences' })}>
-            <Stack align="center" gap={2}>
-              <Icon name="gear" size={16} />
-              <Text>Preferences</Text>
-            </Stack>
-          </Menu.Item>
-
-          <Menu.Divider />
 
           <Menu.Item onClick={() => modalOpened({ modal: 'feedback' })}>
             <Stack align="center" gap={2}>
               <Icon name="feedback" size={16} />
               <Text>Feedback</Text>
+            </Stack>
+          </Menu.Item>
+
+          <Menu.Item
+            onClick={() => {
+              window.open(`${csbSite()}/?from-app=1`);
+            }}
+          >
+            <Stack align="center" gap={2}>
+              <Icon name="external" size={16} />
+              <Text>codesandbox.io</Text>
             </Stack>
           </Menu.Item>
 
@@ -144,7 +139,7 @@ export const UserMenu: FunctionComponent & {
           </Menu.Item>
         </Menu.List>
       </Menu>
-    </Element>
+    </Stack>
   );
 };
 

@@ -8,6 +8,8 @@ import {
   DashboardSkeletonRow,
 } from 'app/pages/Dashboard/types';
 
+import { getParentPath, normalizePath } from '../../../utils/path';
+
 const skeletonRow = {
   type: 'skeleton-row' as 'skeleton-row',
 };
@@ -21,7 +23,6 @@ export const useFilteredItems = (
     allCollections,
     getFilteredSandboxes,
     sandboxes,
-    filters,
     orderBy: sandboxesOrder,
   } = useAppState().dashboard;
   const [items, setItems] = useState<
@@ -37,10 +38,10 @@ export const useFilteredItems = (
 
   useEffect(() => {
     const sandboxesForPath = getFilteredSandboxes(folderSandboxes || []);
-    const parent = path.split('/').pop();
+    const normalizedPath = normalizePath(path);
     const folderFolders =
       allCollections?.filter(
-        collection => collection.level === level && collection.parent === parent
+        collection => getParentPath(collection.path) === normalizedPath
       ) || [];
 
     const sortedFolders = orderBy(folderFolders, 'name').sort(a => 1);
@@ -66,7 +67,6 @@ export const useFilteredItems = (
     cleanPath,
     path,
     level,
-    filters.blacklistedTemplates,
     getFilteredSandboxes,
     sandboxesOrder,
     folderSandboxes,

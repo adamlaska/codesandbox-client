@@ -1,22 +1,21 @@
-import {
-  ModuleTab,
-  NotificationButton,
-  Sandbox,
-  ServerContainerStatus,
-  ServerStatus,
-  TabType,
-} from '@codesandbox/common/lib/types';
+import { NotificationButton, Sandbox } from '@codesandbox/common/lib/types';
 import history from 'app/utils/history';
 import { NotificationMessage } from '@codesandbox/notifications/lib/state';
 import { NotificationStatus } from '@codesandbox/notifications';
 import { hasPermission } from '@codesandbox/common/lib/utils/permission';
 import values from 'lodash-es/values';
 
+import { SubscriptionStatus } from 'app/graphql/types';
+import {
+  GithubTemplate,
+  OfficialTemplatesResponseType,
+  SandboxToFork,
+} from 'app/components/Create/utils/types';
 import { ApiError } from './effects/api/apiFactory';
-import { defaultOpenedModule, mainModule } from './utils/main-module';
-import { parseConfigurations } from './utils/parse-configurations';
 import { Context } from '.';
 import { TEAM_ID_LOCAL_STORAGE } from './utils/team';
+import { AuthOptions, GH_BASE_SCOPE, MAP_GH_SCOPE_OPTIONS } from './utils/auth';
+import { renameZeitToVercel } from './utils/vercel';
 
 /**
  * After getting the current user we need to hydrate the app with new data from that user.
@@ -27,8 +26,6 @@ export const initializeNewUser = async ({
   effects,
   actions,
 }: Context) => {
-  actions.dashboard.getTeams();
-  actions.internal.setPatronPrice();
   effects.analytics.identify('signed_in', true);
   effects.analytics.setUserId(state.user!.id, state.user!.email);
 
@@ -40,21 +37,27 @@ export const initializeNewUser = async ({
   }
 
   actions.internal.showUserSurveyIfNeeded();
-  await effects.live.getSocket();
+  actions.internal.showUpdatedToSIfNeeded();
   actions.userNotifications.internal.initialize();
   actions.internal.setStoredSettings();
-  effects.api.preloadTemplates();
+
+  if (state.activeTeam) {
+    effects.api.preloadTeamTemplates(state.activeTeam);
+  }
+
+  // Fallback scenario when the teams are not initialized
+  if (state.dashboard.teams.length === 0) {
+    await actions.dashboard.getTeams();
+  }
 };
 
 export const signIn = async (
   { state, effects, actions }: Context,
-  options: {
-    useExtraScopes?: boolean;
-    provider: 'apple' | 'google' | 'github';
-  }
+  options: AuthOptions
 ) => {
   effects.analytics.track('Sign In', {
     provider: options.provider,
+    scope: options.provider === 'github' ? options.includedScopes : '',
   });
   try {
     await actions.internal.runProviderAuth(options);
@@ -62,9 +65,11 @@ export const signIn = async (
     state.signInModalOpen = false;
     state.cancelOnLogin = null;
     state.pendingUser = null;
-    state.user = await effects.api.getCurrentUser();
+
+    const currentUser = await effects.api.getCurrentUser();
+    state.user = renameZeitToVercel(currentUser);
+
     await actions.internal.initializeNewUser();
-    actions.refetchSandboxInfo();
     state.hasLogIn = true;
     state.isAuthenticating = false;
     actions.getActiveTeamInfo();
@@ -73,6 +78,87 @@ export const signIn = async (
       message: 'Could not authenticate',
       error,
     });
+  }
+};
+
+// TODO: Replace this with a browserSandboxId field in the github repo
+const DEVBOX_SANDBOX_ID_MAP = {
+  '9qputt': 'react-ts',
+  '7rp8q9': 'vanilla-ts',
+  '3l5fg9': 'vanilla',
+  kmwy42: 'rjk9n4zj7m', // Html + CSS
+};
+
+export const prefetchOfficialTemplates = async ({ state }: Context) => {
+  // Preload official devbox templates for the create modal
+  if (state.officialTemplates.length === 0) {
+    try {
+      // First query the templates from github / sandbox-templates
+      const githubTemplatesResponse = (await fetch(
+        'https://raw.githubusercontent.com/codesandbox/sandbox-templates/main/templates.json'
+      ).then(res => res.json())) as GithubTemplate[];
+
+      const githubTemplates: SandboxToFork[] = githubTemplatesResponse.map(
+        template => ({
+          id: template.id,
+          title: template.title,
+          alias: template.title,
+          description: template.description,
+          tags: [...template.tags, 'server']
+            .concat(
+              DEVBOX_SANDBOX_ID_MAP[template.id]
+                ? ['browser', 'playground', 'frontend']
+                : []
+            )
+            .concat(
+              DEVBOX_SANDBOX_ID_MAP[template.id]?.endsWith('-ts')
+                ? ['typescript']
+                : []
+            ),
+          editorUrl: template.editorUrl,
+          type: 'devbox',
+          forkCount: template.forkCount,
+          viewCount: template.viewCount,
+          iconUrl: template.iconUrl,
+          author: 'CodeSandbox',
+          browserSandboxId: DEVBOX_SANDBOX_ID_MAP[template.id],
+        })
+      );
+
+      const apiResponse = (await fetch(
+        '/api/v1/sandboxes/templates/official'
+      ).then(res => res.json())) as OfficialTemplatesResponseType;
+
+      // Query the db sandbox templates to fill in with templates that are browser-only
+      const browserOnlyTemplates: SandboxToFork[] = apiResponse[0].sandboxes
+        .filter(s => !s.v2)
+        // Filter out sandbox templates that are associated with devboxes
+        .filter(s => !Object.values(DEVBOX_SANDBOX_ID_MAP).includes(s.id))
+        .map(template => ({
+          id: template.id,
+          title: template.title,
+          alias: template.alias,
+          description: template.description,
+          tags: ['browser', 'playground', 'frontend'].concat(
+            template.id.endsWith('-ts') ? ['typescript'] : []
+          ),
+          type: 'sandbox',
+          forkCount: template.fork_count,
+          viewCount: template.view_count,
+          iconUrl: template.custom_template.icon_url,
+          sourceTemplate: template.environment,
+          author: 'CodeSandbox',
+        }));
+
+      const templates = [...githubTemplates, ...browserOnlyTemplates];
+
+      // Sort templates by fork count
+      templates.sort((s1, s2) => s2.forkCount - s1.forkCount);
+
+      state.officialTemplates = templates;
+    } catch (e) {
+      // ignore errors
+    }
   }
 };
 
@@ -91,16 +177,6 @@ export const setStoredSettings = ({ state, effects }: Context) => {
   }
 
   Object.assign(state.preferences.settings, settings);
-};
-
-export const setPatronPrice = ({ state }: Context) => {
-  if (!state.user) {
-    return;
-  }
-
-  state.patron.price = state.user.subscription
-    ? Number(state.user.subscription.amount)
-    : 10;
 };
 
 export const showUserSurveyIfNeeded = ({
@@ -130,6 +206,50 @@ export const showUserSurveyIfNeeded = ({
       },
     });
   }
+};
+
+export const showUpdatedToSIfNeeded = ({ state, effects }: Context) => {
+  const registrationDate = state.user?.insertedAt
+    ? new Date(state.user.insertedAt)
+    : new Date();
+
+  // If we're in an iframe, don't show notification
+  try {
+    if (window.self !== window.top) {
+      return;
+    }
+  } catch (e) {
+    // Ignore errors
+  }
+
+  if (registrationDate >= new Date('2024-03-10')) {
+    // This means that the user has registered before we updated the ToS, and we need to notify
+    // them that the ToS has changed.
+    return;
+  }
+
+  const hasShownToS = effects.browser.storage.get('TOS_1_SHOWN');
+  if (hasShownToS) {
+    return;
+  }
+
+  effects.browser.storage.set('TOS_1_SHOWN', true);
+
+  effects.notificationToast.add({
+    title: 'Terms of Service Updated',
+    message: "We've updated our Terms of Service.",
+    status: NotificationStatus.NOTICE,
+    sticky: true,
+
+    actions: {
+      primary: {
+        label: 'Open Terms of Service',
+        run: () => {
+          window.open('https://codesandbox.io/legal/terms', '_blank');
+        },
+      },
+    },
+  });
 };
 
 /**
@@ -165,33 +285,51 @@ export const authorize = async ({ state, effects }: Context) => {
   try {
     state.isLoadingAuthToken = true;
     state.authToken = await effects.api.getAuthToken();
-  } catch (error) {
-    state.editor.error = error.message;
   } finally {
     state.isLoadingAuthToken = false;
   }
 };
 export const runProviderAuth = (
   { effects, state }: Context,
-  {
-    provider,
-    useExtraScopes,
-  }: { useExtraScopes?: boolean; provider?: 'apple' | 'github' | 'google' }
+  options: AuthOptions
 ) => {
-  const hasDevAuth = process.env.LOCAL_SERVER || process.env.STAGING;
+  const { provider } = options;
 
-  const authPath = new URL(
-    location.origin + (hasDevAuth ? '/auth/dev' : `/auth/${provider}`)
+  // When in development, check if there's authentication.
+  const isInitialDevelopmentAuth =
+    process.env.NODE_ENV === 'development' && !state.hasLogIn;
+  // Use dev auth if local server or staging and there's no
+  // authentication or the provider isn't GitHub. This is
+  // needed to allow us to go to GitHub to authorize extra
+  // scopes during development.
+  const useDevAuth =
+    (process.env.LOCAL_SERVER || process.env.STAGING) &&
+    (isInitialDevelopmentAuth || provider !== 'github');
+  // Base path
+  const baseUrl = useDevAuth
+    ? location.origin
+    : process.env.ENDPOINT || 'https://codesandbox.io';
+
+  let authPath = new URL(
+    baseUrl + (useDevAuth ? '/auth/dev' : `/auth/${provider}`)
   );
 
   authPath.searchParams.set('version', '2');
 
   if (provider === 'github') {
-    if (useExtraScopes) {
-      authPath.searchParams.set('scope', 'user:email,repo,workflow');
-    } else {
-      authPath.searchParams.set('scope', 'user:email');
+    let scope = GH_BASE_SCOPE;
+    if (
+      'includedScopes' in options &&
+      typeof options.includedScopes !== 'undefined'
+    ) {
+      scope =
+        GH_BASE_SCOPE + ',' + MAP_GH_SCOPE_OPTIONS[options.includedScopes];
     }
+    authPath.searchParams.set('scope', scope);
+  }
+
+  if (provider === 'sso') {
+    authPath = new URL(baseUrl + options.ssoURL);
   }
 
   const popup = effects.browser.openPopup(authPath.toString(), 'sign in');
@@ -199,7 +337,7 @@ export const runProviderAuth = (
   const signInPromise = effects.browser
     .waitForMessage('signin')
     .then((data: any) => {
-      if (hasDevAuth) {
+      if (useDevAuth) {
         localStorage.setItem('devJwt', data.jwt);
 
         // Today + 30 days
@@ -224,7 +362,9 @@ export const runProviderAuth = (
   effects.browser.waitForMessage('signup').then((data: any) => {
     state.pendingUserId = data.id;
 
-    localStorage.setItem('should-onboarding-user', 'true');
+    // Temporarily hide the editor onboarding for new users
+    // since its UI and contents are outdated.
+    effects.browser.storage.set('should-onboard-user', false);
 
     popup.close();
   });
@@ -255,134 +395,6 @@ export const switchCurrentWorkspaceBySandbox = (
   ) {
     actions.setActiveTeam({ id: sandbox.team.id });
   }
-};
-
-export const currentSandboxChanged = ({ state, actions }: Context) => {
-  const sandbox = state.editor.currentSandbox!;
-  actions.internal.switchCurrentWorkspaceBySandbox({
-    sandbox,
-  });
-};
-
-export const setCurrentSandbox = async (
-  { state, effects, actions }: Context,
-  sandbox: Sandbox
-) => {
-  state.editor.sandboxes[sandbox.id] = sandbox;
-  state.editor.currentId = sandbox.id;
-
-  let { currentModuleShortid } = state.editor;
-  const parsedConfigs = parseConfigurations(sandbox);
-  const main = mainModule(sandbox, parsedConfigs);
-
-  state.editor.mainModuleShortid = main?.shortid;
-
-  // Only change the module shortid if it doesn't exist in the new sandbox
-  // This can happen when a sandbox is opened that's different from the current
-  // sandbox, with completely different files
-  if (
-    !sandbox.modules.find(module => module.shortid === currentModuleShortid)
-  ) {
-    const defaultModule = defaultOpenedModule(sandbox, parsedConfigs);
-
-    if (defaultModule) {
-      currentModuleShortid = defaultModule.shortid;
-    }
-  }
-
-  const sandboxOptions = effects.router.getSandboxOptions();
-
-  if (sandboxOptions.currentModule) {
-    try {
-      const resolvedModule = effects.utils.resolveModule(
-        sandboxOptions.currentModule,
-        sandbox.modules,
-        sandbox.directories
-      );
-      currentModuleShortid = resolvedModule
-        ? resolvedModule.shortid
-        : currentModuleShortid;
-    } catch (error) {
-      actions.internal.handleError({
-        message: `Could not find module ${sandboxOptions.currentModule}`,
-        error,
-      });
-    }
-  }
-
-  state.editor.currentModuleShortid = currentModuleShortid;
-  state.editor.workspaceConfigCode = '';
-
-  state.server.status = ServerStatus.INITIALIZING;
-  state.server.containerStatus = ServerContainerStatus.INITIALIZING;
-  state.server.error = null;
-  state.server.hasUnrecoverableError = false;
-  state.server.ports = [];
-
-  const newTab: ModuleTab = {
-    type: TabType.MODULE,
-    moduleShortid: currentModuleShortid,
-    dirty: true,
-  };
-
-  state.editor.tabs = [newTab];
-
-  state.preferences.showPreview = Boolean(
-    sandboxOptions.isPreviewScreen || sandboxOptions.isSplitScreen
-  );
-
-  state.preferences.showEditor = Boolean(
-    sandboxOptions.isEditorScreen || sandboxOptions.isSplitScreen
-  );
-
-  if (sandboxOptions.initialPath)
-    state.editor.initialPath = sandboxOptions.initialPath;
-  if (sandboxOptions.fontSize)
-    state.preferences.settings.fontSize = sandboxOptions.fontSize;
-  if (sandboxOptions.highlightedLines)
-    state.editor.highlightedLines = sandboxOptions.highlightedLines;
-  if (sandboxOptions.hideNavigation)
-    state.preferences.hideNavigation = sandboxOptions.hideNavigation;
-  if (sandboxOptions.isInProjectView)
-    state.editor.isInProjectView = sandboxOptions.isInProjectView;
-  if (sandboxOptions.autoResize)
-    state.preferences.settings.autoResize = sandboxOptions.autoResize;
-  if (sandboxOptions.enableEslint)
-    state.preferences.settings.enableEslint = sandboxOptions.enableEslint;
-  if (sandboxOptions.forceRefresh)
-    state.preferences.settings.forceRefresh = sandboxOptions.forceRefresh;
-  if (sandboxOptions.expandDevTools)
-    state.preferences.showDevtools = sandboxOptions.expandDevTools;
-  if (sandboxOptions.runOnClick)
-    state.preferences.runOnClick = sandboxOptions.runOnClick;
-
-  state.workspace.project.title = sandbox.title || '';
-  state.workspace.project.description = sandbox.description || '';
-  state.workspace.project.alias = sandbox.alias || '';
-
-  // Do this before startContainer, because startContainer flushes in overmind and causes
-  // the components to rerender. Because of this sometimes the GitHub component will get a
-  // sandbox without a git
-  actions.workspace.openDefaultItem();
-  actions.server.startContainer(sandbox);
-
-  actions.internal.currentSandboxChanged();
-};
-
-export const closeTabByIndex = ({ state }: Context, tabIndex: number) => {
-  const { currentModule } = state.editor;
-  const tabs = state.editor.tabs as ModuleTab[];
-  const isActiveTab = currentModule.shortid === tabs[tabIndex].moduleShortid;
-
-  if (isActiveTab) {
-    const newTab = tabIndex > 0 ? tabs[tabIndex - 1] : tabs[tabIndex + 1];
-
-    if (newTab) {
-      state.editor.currentModuleShortid = newTab.moduleShortid;
-    }
-  }
-
-  state.editor.tabs.splice(tabIndex, 1);
 };
 
 export const getErrorMessage = (
@@ -556,43 +568,6 @@ export const identifyCurrentUser = async ({ state, effects }: Context) => {
   }
 };
 
-export const showPrivacyPolicyNotification = ({ effects, state }: Context) => {
-  const seenTermsKey = 'ACCEPTED_TERMS_CODESANDBOX_v1.1';
-  if (effects.browser.storage.get(seenTermsKey)) {
-    return;
-  }
-
-  if (!state.isFirstVisit) {
-    effects.analytics.track('Saw Terms of Use Notification');
-    effects.notificationToast.add({
-      message:
-        'Hello, we are changing our Terms of Use effective Mar 31, 2021 12:00 UTC. Please read them, or see commit message for a brief sum up.',
-      title: 'Updated Terms of Use',
-      status: NotificationStatus.NOTICE,
-      sticky: true,
-      actions: {
-        secondary: {
-          label: 'Open Commit Message',
-          run: () => {
-            window.open(
-              'https://github.com/codesandbox/codesandbox-client/commit/36b0f928cb863868bbfd93bb455a74ff46951edc',
-              '_blank'
-            );
-          },
-        },
-        primary: {
-          label: 'Open Privacy Policy',
-          run: () => {
-            window.open('https://codesandbox.io/legal/privacy', '_blank');
-          },
-        },
-      },
-    });
-  }
-
-  effects.browser.storage.set(seenTermsKey, true);
-};
-
 const VIEW_MODE_DASHBOARD = 'VIEW_MODE_DASHBOARD';
 export const setViewModeForDashboard = ({ effects, state }: Context) => {
   const localStorageViewMode = effects.browser.storage.get(VIEW_MODE_DASHBOARD);
@@ -601,58 +576,90 @@ export const setViewModeForDashboard = ({ effects, state }: Context) => {
   }
 };
 
-export const setActiveTeamFromUrlOrStore = async ({ actions }: Context) =>
-  actions.internal.setActiveTeamFromUrl() ||
-  actions.internal.setActiveTeamFromLocalStorage() ||
-  actions.internal.setActiveTeamFromPersonalWorkspaceId();
-
-export const setActiveTeamFromLocalStorage = ({
-  effects,
-  actions,
-}: Context) => {
-  const localStorageTeam = effects.browser.storage.get(TEAM_ID_LOCAL_STORAGE);
-
-  if (typeof localStorageTeam === 'string') {
-    actions.setActiveTeam({ id: localStorageTeam });
-    return localStorageTeam;
-  }
-
-  return null;
-};
-
-export const setActiveTeamFromUrl = ({ actions }: Context) => {
-  const currentUrl =
-    typeof document === 'undefined' ? null : document.location.href;
-  if (!currentUrl) {
-    return null;
-  }
-
-  const searchParams = new URL(currentUrl).searchParams;
-
-  const workspaceParam = searchParams.get('workspace');
-  if (workspaceParam) {
-    actions.setActiveTeam({ id: workspaceParam });
-    return workspaceParam;
-  }
-
-  return null;
-};
-
-export const setActiveTeamFromPersonalWorkspaceId = async ({
+export const initializeActiveWorkspace = async ({
   actions,
   state,
   effects,
 }: Context) => {
-  const personalWorkspaceId = state.personalWorkspaceId;
+  const persistedWorkspaceId = actions.internal.getTeamIdFromUrlOrStore();
 
-  if (personalWorkspaceId) {
-    actions.setActiveTeam({ id: personalWorkspaceId });
-    return personalWorkspaceId;
+  const hasWorkspaces =
+    state.dashboard?.teams && state.dashboard.teams.length > 0;
+  if (!hasWorkspaces) {
+    const teams = await effects.gql.queries.getTeams({});
+
+    if (teams?.me) {
+      state.dashboard.teams = teams.me.workspaces;
+      state.primaryWorkspaceId = teams.me.primaryWorkspaceId;
+    }
+
+    // Hard redirect to /create-workspace when no workspace is available
+    if (
+      !window.location.href.includes('/create-workspace') &&
+      state.dashboard.teams.length === 0
+    ) {
+      window.location.href = '/create-workspace';
+    }
   }
-  const res = await effects.gql.queries.getPersonalWorkspaceId({});
-  if (res.me) {
-    actions.setActiveTeam({ id: res.me.personalWorkspaceId });
-    return res.me.personalWorkspaceId;
+
+  const isPersistedWorkspaceValid = state.dashboard.teams.some(
+    team => team.id === persistedWorkspaceId
+  );
+
+  if (isPersistedWorkspaceValid && persistedWorkspaceId) {
+    // Set active team from url or storage.
+    actions.setActiveTeam({ id: persistedWorkspaceId });
+  } else {
+    actions.internal.setFallbackWorkspace();
+  }
+};
+
+export const setFallbackWorkspace = ({ actions, state }: Context) => {
+  if (state.primaryWorkspaceId) {
+    actions.setActiveTeam({ id: state.primaryWorkspaceId });
+  } else {
+    const firstWorkspace =
+      state.dashboard.teams.length > 0 ? state.dashboard.teams[0] : null;
+    const firstProWorkspace = state.dashboard.teams.find(
+      team => team.subscription?.status === SubscriptionStatus.Active
+    );
+
+    if (firstProWorkspace) {
+      actions.setActiveTeam({ id: firstProWorkspace.id });
+    } else if (firstWorkspace) {
+      actions.setActiveTeam({ id: firstWorkspace.id });
+    } else {
+      // TODO: Redirect to workspace setup
+      // https://linear.app/codesandbox/issue/PC-1341/handle-empty-state-for-primary-workspaces
+    }
+  }
+};
+
+export const getTeamIdFromUrlOrStore = ({
+  actions,
+}: Context): string | null => {
+  return (
+    actions.internal.getTeamIdFromUrl() ||
+    actions.internal.getTeamIdFromLocalStorage()
+  );
+};
+
+export const getTeamIdFromUrl = (): string | null => {
+  const url = typeof document === 'undefined' ? null : document.location.href;
+
+  if (url) {
+    return new URL(url).searchParams.get('workspace');
+  }
+
+  return null;
+};
+
+export const getTeamIdFromLocalStorage = ({ effects }): string | null => {
+  const localStorageTeamId = effects.browser.storage.get(TEAM_ID_LOCAL_STORAGE);
+  const isValidStorageItem = typeof localStorageTeamId === 'string';
+
+  if (isValidStorageItem) {
+    return localStorageTeamId;
   }
 
   return null;

@@ -11,3 +11,15 @@ export const sidebarTemplateFragment = gql`
     id
   }
 `;
+
+export const sidebarProjectFragment = gql`
+  fragment sidebarProjectFragment on Project {
+    repository {
+      ... on GitHubRepository {
+        name
+        owner
+        defaultBranch
+      }
+    }
+  }
+`;

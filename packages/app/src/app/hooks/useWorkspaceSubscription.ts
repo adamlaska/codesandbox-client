@@ -1,100 +1,84 @@
 import {
-  SubscriptionOrigin,
-  SubscriptionPaymentProvider,
+  CurrentTeamInfoFragmentFragment,
   SubscriptionStatus,
-  SubscriptionType,
 } from 'app/graphql/types';
 import { useAppState } from 'app/overmind';
-import { useWorkspaceAuthorization } from './useWorkspaceAuthorization';
+import { useControls } from 'leva';
+
+export enum SubscriptionDebugStatus {
+  'DEFAULT' = 'Default (use API data)',
+  'NO_SUBSCRIPTION' = 'Free (without prior subscription)',
+}
 
 export const useWorkspaceSubscription = (): WorkspaceSubscriptionReturn => {
-  const { activeTeamInfo } = useAppState();
-  const { isTeamSpace } = useWorkspaceAuthorization();
+  const { activeTeamInfo, environment } = useAppState();
+
+  const options: SubscriptionDebugStatus[] = [SubscriptionDebugStatus.DEFAULT];
+
+  if (activeTeamInfo) {
+    options.push(SubscriptionDebugStatus.NO_SUBSCRIPTION);
+  }
+
+  const { debugStatus } = useControls(
+    'Subscription',
+    {
+      debugStatus: {
+        label: 'Status',
+        value: SubscriptionDebugStatus.DEFAULT,
+        options,
+      },
+    },
+    [options]
+  );
 
   if (!activeTeamInfo) {
     return NO_WORKSPACE;
   }
 
-  const subscription = activeTeamInfo.subscription;
+  const subscription =
+    debugStatus === SubscriptionDebugStatus.NO_SUBSCRIPTION
+      ? null
+      : activeTeamInfo.subscription;
 
   if (!subscription) {
     return NO_SUBSCRIPTION;
   }
 
   const isPro =
-    subscription.status === SubscriptionStatus.Active ||
-    subscription.status === SubscriptionStatus.Trialing;
-
+    environment.isOnPrem || // On prem workspaces are pro by default
+    subscription.status === SubscriptionStatus.Active;
   const isFree = !isPro;
-  const hasActiveTeamTrial =
-    isTeamSpace && subscription.status === SubscriptionStatus.Trialing;
 
-  const numberOfSeats = subscription.quantity || 1;
-
-  const isPatron =
-    subscription.origin === SubscriptionOrigin.Legacy ||
-    subscription.origin === SubscriptionOrigin.Patron;
-
-  const isPaddle =
-    subscription.paymentProvider === SubscriptionPaymentProvider.Paddle;
-
-  const isStripe =
-    subscription.paymentProvider === SubscriptionPaymentProvider.Stripe;
+  const hasPaymentMethod = subscription.paymentMethodAttached;
 
   return {
     subscription,
-    numberOfSeats,
     isPro,
     isFree,
-    isEligibleForTrial: false,
-    hasActiveTeamTrial,
-    isPatron,
-    isPaddle,
-    isStripe,
+    hasPaymentMethod,
   };
 };
 
 const NO_WORKSPACE = {
   subscription: undefined,
-  numberOfSeats: undefined,
   isPro: undefined,
   isFree: undefined,
-  isEligibleForTrial: undefined,
-  hasActiveTeamTrial: undefined,
-  isPatron: undefined,
-  isPaddle: undefined,
-  isStripe: undefined,
+  hasPaymentMethod: undefined,
 };
 
 const NO_SUBSCRIPTION = {
   subscription: null,
-  numberOfSeats: 0,
   isPro: false,
   isFree: true,
-  isEligibleForTrial: true,
-  hasActiveTeamTrial: false,
-  isPatron: false,
-  isPaddle: false,
-  isStripe: false,
+  hasPaymentMethod: false,
 };
 
 export type WorkspaceSubscriptionReturn =
   | typeof NO_WORKSPACE
   | typeof NO_SUBSCRIPTION
   | {
-      subscription: {
-        cancelAt?: string;
-        status: SubscriptionStatus;
-        type: SubscriptionType;
-        trialEnd?: string;
-        trialStart?: string;
-      };
-      numberOfSeats: number;
+      subscription: CurrentTeamInfoFragmentFragment['subscription'];
       isPro: boolean;
       isFree: boolean;
-      isEligibleForTrial: false;
-      hasActiveTeamTrial: boolean;
-      isPatron: boolean;
-      isPaddle: boolean;
-      isStripe: boolean;
+      hasPaymentMethod: boolean;
     };

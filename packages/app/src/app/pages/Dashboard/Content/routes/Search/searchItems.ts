@@ -2,12 +2,12 @@ import {
   Collection,
   SandboxFragmentDashboardFragment,
   SidebarCollectionDashboardFragment,
+  ProjectFragment as Repository,
 } from 'app/graphql/types';
 import { useAppState, useActions } from 'app/overmind';
 import Fuse from 'fuse.js';
 import React, { useEffect } from 'react';
 import { sandboxesTypes } from 'app/overmind/namespaces/dashboard/types';
-import type { ProjectFragment as Repository } from 'app/graphql/types';
 
 const useSearchedSandboxes = (query: string) => {
   const state = useAppState();
@@ -32,7 +32,7 @@ const useSearchedSandboxes = (query: string) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [
       state.dashboard.sandboxes.SEARCH,
-      state.dashboard.repositories,
+      state.dashboard.repositoriesByTeamId,
       state.activeTeam,
     ]
   );
@@ -59,7 +59,7 @@ const calculateSearchIndex = (dashboard: any, activeTeam: string) => {
     }))
     .filter(f => f.title);
 
-  const teamRepos = dashboard.repositories?.[activeTeam] ?? [];
+  const teamRepos = dashboard.repositoriesByTeamId[activeTeam] ?? [];
   const repositories = teamRepos.map((repo: Repository) => {
     return {
       title: repo.repository.name,
@@ -85,7 +85,20 @@ const calculateSearchIndex = (dashboard: any, activeTeam: string) => {
   });
 };
 
-export const useGetItems = ({ query, getFilteredSandboxes }) => {
+export const useGetItems = ({
+  query,
+  username,
+  getFilteredSandboxes,
+}: {
+  query: string;
+  username: string;
+  getFilteredSandboxes: (
+    sandboxes: (
+      | SandboxFragmentDashboardFragment
+      | SidebarCollectionDashboardFragment
+    )[]
+  ) => SandboxFragmentDashboardFragment[];
+}) => {
   const foundResults: Array<
     SandboxFragmentDashboardFragment | SidebarCollectionDashboardFragment
   > = useSearchedSandboxes(query) || [];
@@ -94,18 +107,24 @@ export const useGetItems = ({ query, getFilteredSandboxes }) => {
   const sandboxesInSearch = foundResults.filter(s => !s.path);
   // @ts-ignore
   const foldersInSearch = foundResults.filter(s => s.path);
-  // @ts-ignore
-  const repositoriesInSearch = foundResults.filter(s => s.repository);
 
   const filteredSandboxes: SandboxFragmentDashboardFragment[] = getFilteredSandboxes(
     sandboxesInSearch
   );
 
-  const orderedSandboxes = [
-    ...foldersInSearch,
-    ...filteredSandboxes,
-    ...repositoriesInSearch,
-  ];
+  const orderedSandboxes = [...foldersInSearch, ...filteredSandboxes].filter(
+    item => {
+      // @ts-ignore
+      if (item.path || item.repository) {
+        return true;
+      }
+
+      const sandbox = item as SandboxFragmentDashboardFragment;
+
+      // Remove draft sandboxes from other authors
+      return sandbox.draft && sandbox.author.username === username;
+    }
+  );
 
   // @ts-ignore
   const items: DashboardGridItem[] =
@@ -125,7 +144,7 @@ export const useGetItems = ({ query, getFilteredSandboxes }) => {
               type: 'repository',
               repository: {
                 // @ts-ignore
-                branches: found.branches,
+                branchCount: found.branchCount,
                 // @ts-ignore
                 repository: found.repository,
               },

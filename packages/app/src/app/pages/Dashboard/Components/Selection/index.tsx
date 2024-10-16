@@ -1,7 +1,7 @@
 import React from 'react';
 import { useLocation, useHistory } from 'react-router-dom';
 import { useAppState, useActions, useEffects } from 'app/overmind';
-import { Element, SkipNav } from '@codesandbox/components';
+import { Element, SkipNav, Stack } from '@codesandbox/components';
 import css from '@styled-system/css';
 import {
   ARROW_LEFT,
@@ -17,8 +17,7 @@ import {
   sandboxUrl,
   dashboard as dashboardUrls,
 } from '@codesandbox/common/lib/utils/url-generator';
-import { useWorkspaceSubscription } from 'app/hooks/useWorkspaceSubscription';
-import { useWorkspaceLimits } from 'app/hooks/useWorkspaceLimits';
+
 import { DragPreview } from './DragPreview';
 import { ContextMenu } from './ContextMenu';
 import {
@@ -26,8 +25,7 @@ import {
   DashboardSandbox,
   DashboardFolder,
   DashboardGridItem,
-  DashboardRepo,
-  DashboardCommunitySandbox,
+  DashboardSyncedRepo,
   PageTypes,
   DashboardBranch,
   DashboardRepository,
@@ -87,8 +85,9 @@ const Context = React.createContext<SelectionContext>({
 
 interface SelectionProviderProps {
   items: Array<DashboardGridItem>;
-  createNewFolder?: (() => void) | null;
-  createNewSandbox?: (() => void) | null;
+  createNewFolder?: () => void;
+  createNewSandbox?: () => void;
+  createNewDevbox?: () => void;
   activeTeamId: string | null;
   page: PageTypes;
   interactive?: boolean;
@@ -96,8 +95,9 @@ interface SelectionProviderProps {
 
 export const SelectionProvider: React.FC<SelectionProviderProps> = ({
   items = [],
-  createNewFolder = null,
-  createNewSandbox = null,
+  createNewFolder,
+  createNewSandbox,
+  createNewDevbox,
   activeTeamId,
   page,
   children,
@@ -108,15 +108,13 @@ export const SelectionProvider: React.FC<SelectionProviderProps> = ({
       item.type === 'sandbox' ||
       item.type === 'template' ||
       item.type === 'folder' ||
-      item.type === 'repo' ||
-      item.type === 'community-sandbox' ||
+      item.type === 'synced-sandbox-repo' ||
       item.type === 'branch'
   ) as Array<
     | DashboardSandbox
     | DashboardTemplate
     | DashboardFolder
-    | DashboardRepo
-    | DashboardCommunitySandbox
+    | DashboardSyncedRepo
     | DashboardBranch
     | DashboardRepository
   >;
@@ -128,7 +126,7 @@ export const SelectionProvider: React.FC<SelectionProviderProps> = ({
       return `${providerRepository.owner}-${providerRepository.name}`;
     }
     if (item.type === 'folder') return item.path;
-    if (item.type === 'repo') return item.name;
+    if (item.type === 'synced-sandbox-repo') return item.name;
     return item.sandbox.id;
   });
 
@@ -136,10 +134,7 @@ export const SelectionProvider: React.FC<SelectionProviderProps> = ({
     item => item.type === 'folder'
   ) as DashboardFolder[];
   const sandboxes = (items || []).filter(
-    item =>
-      item.type === 'sandbox' ||
-      item.type === 'template' ||
-      item.type === 'community-sandbox'
+    item => item.type === 'sandbox' || item.type === 'template'
   ) as Array<DashboardSandbox | DashboardTemplate>;
   const branches = (items || []).filter(
     item => item.type === 'branch'
@@ -152,8 +147,6 @@ export const SelectionProvider: React.FC<SelectionProviderProps> = ({
   const actions = useActions();
   const { dashboard, activeTeam } = useAppState();
   const { analytics } = useEffects();
-  const { isFree } = useWorkspaceSubscription();
-  const { hasMaxPublicSandboxes } = useWorkspaceLimits();
 
   const onClick = (event: React.MouseEvent<HTMLDivElement>, itemId: string) => {
     if (event.ctrlKey || event.metaKey) {
@@ -342,7 +335,7 @@ export const SelectionProvider: React.FC<SelectionProviderProps> = ({
       if (event.ctrlKey || event.metaKey) {
         window.open(url, '_blank');
       } else {
-        history.push(url, { focus: 'FIRST_ITEM' });
+        window.location.href = url;
       }
     }
 
@@ -455,12 +448,9 @@ export const SelectionProvider: React.FC<SelectionProviderProps> = ({
         actions.dashboard.addSandboxesToFolder({
           sandboxIds,
           collectionPath: activeTeam ? null : '/',
+          privacy: 2,
         });
       } else if (dropPage === 'sandboxes') {
-        if (isFree && hasMaxPublicSandboxes) {
-          return;
-        }
-
         actions.dashboard.addSandboxesToFolder({
           sandboxIds,
           collectionPath: dropResult.path,
@@ -469,6 +459,7 @@ export const SelectionProvider: React.FC<SelectionProviderProps> = ({
             page === 'deleted' ||
             page === 'templates' ||
             page === 'drafts',
+          privacy: null,
         });
       }
     }
@@ -636,15 +627,15 @@ export const SelectionProvider: React.FC<SelectionProviderProps> = ({
         activeTeamId,
       }}
     >
-      <Element
+      <Stack
         id="selection-container"
         onContextMenu={onContainerContextMenu}
         css={css({
-          paddingTop: 8,
-          paddingBottom: 8,
+          paddingTop: page === 'recent' ? 0 : 3, // In the recent page, this component is nested so the padding top isn't needed.
           width: '100%',
           height: '100%',
         })}
+        direction="vertical"
         {...(interactive
           ? {
               onKeyDown: onContainerKeyDown,
@@ -659,7 +650,7 @@ export const SelectionProvider: React.FC<SelectionProviderProps> = ({
           onFocus={() => setSelectedIds([selectionItems[0]])}
         />
         {children}
-      </Element>
+      </Stack>
       {drawingRect && selectionRect.end.x && (
         <Element
           id="selection-rectangle"
@@ -700,6 +691,7 @@ export const SelectionProvider: React.FC<SelectionProviderProps> = ({
         page={page}
         createNewFolder={createNewFolder}
         createNewSandbox={createNewSandbox}
+        createNewDevbox={createNewDevbox}
       />
     </Context.Provider>
   );

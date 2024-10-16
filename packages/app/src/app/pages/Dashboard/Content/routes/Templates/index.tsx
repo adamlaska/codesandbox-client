@@ -7,7 +7,6 @@ import { VariableGrid } from 'app/pages/Dashboard/Components/VariableGrid';
 import { SelectionProvider } from 'app/pages/Dashboard/Components/Selection';
 import { DashboardGridItem, PageTypes } from 'app/pages/Dashboard/types';
 import { TemplateFragmentDashboardFragment } from 'app/graphql/types';
-import { getPossibleTemplates } from '../../utils';
 
 export const Templates = () => {
   const {
@@ -19,10 +18,6 @@ export const Templates = () => {
   useEffect(() => {
     getPage(sandboxesTypes.TEMPLATES);
   }, [getPage, activeTeam]);
-
-  const possibleTemplates = sandboxes.TEMPLATES
-    ? getPossibleTemplates(sandboxes.TEMPLATES)
-    : [];
 
   const sandboxIdsToTemplate = new Map<
     string,
@@ -57,11 +52,10 @@ export const Templates = () => {
       <Header
         title="Templates"
         activeTeam={activeTeam}
-        templates={possibleTemplates}
         showViewOptions
-        showFilters
         showSortOptions
       />
+
       <VariableGrid items={items} page={pageType} />
     </SelectionProvider>
   );

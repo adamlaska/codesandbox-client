@@ -1,10 +1,10 @@
-import { Contributor, PermissionType } from '@codesandbox/common/lib/types';
+import { Contributor } from '@codesandbox/common/lib/types';
 import { identify } from '@codesandbox/common/lib/utils/analytics';
 import { notificationState } from '@codesandbox/common/lib/utils/notifications';
-import { hasPermission } from '@codesandbox/common/lib/utils/permission';
 import { NotificationStatus } from '@codesandbox/notifications';
 import { IState, derived, ContextFunction } from 'overmind';
 import { Context } from '.';
+import { renameZeitToVercel } from './utils/vercel';
 
 /*
   Ensures that we have loaded the app with the initial user
@@ -27,7 +27,7 @@ export const withLoadApp = <I>(
 
   effects.connection.addListener(actions.connectionChanged);
   actions.internal.setStoredSettings();
-  effects.codesandboxApi.listen(actions.server.onCodeSandboxAPIMessage);
+  actions.internal.prefetchOfficialTemplates();
 
   if (localStorage.jwt) {
     // We've introduced a new way of signing in to CodeSandbox, and we should let the user know to
@@ -65,7 +65,7 @@ export const withLoadApp = <I>(
     try {
       await Promise.all([
         effects.api.getCurrentUser().then(user => {
-          state.user = user;
+          state.user = renameZeitToVercel(user);
         }),
       ]);
 
@@ -102,53 +102,6 @@ export const withLoadApp = <I>(
   } catch (error) {
     // Something wrong in the parsing probably, make sure the file is JSON valid
   }
-};
-
-export const withOwnedSandbox = <I>(
-  continueAction: ContextFunction<I, void>,
-  cancelAction: ContextFunction<I, void> = () => Promise.resolve(),
-  requiredPermission?: PermissionType
-): ContextFunction<I, void> => async (context: Context, payload: I) => {
-  const { state, actions } = context;
-
-  const sandbox = state.editor.currentSandbox;
-  if (sandbox) {
-    if (
-      typeof requiredPermission === 'undefined'
-        ? !sandbox.owned
-        : !hasPermission(sandbox.authorization, requiredPermission)
-    ) {
-      if (state.editor.isForkingSandbox) {
-        return cancelAction(context, payload);
-      }
-
-      try {
-        await actions.editor.internal.forkSandbox({
-          sandboxId: sandbox.id,
-        });
-      } catch (e) {
-        return cancelAction(context, payload);
-      }
-    } else if (sandbox.isFrozen && state.editor.sessionFrozen) {
-      const modalResponse = await actions.modals.forkFrozenModal.open();
-
-      if (modalResponse === 'fork') {
-        try {
-          await actions.editor.internal.forkSandbox({
-            sandboxId: sandbox.id,
-          });
-        } catch (e) {
-          return cancelAction(context, payload);
-        }
-      } else if (modalResponse === 'unfreeze') {
-        state.editor.sessionFrozen = false;
-      } else if (modalResponse === 'cancel') {
-        return cancelAction(context, payload);
-      }
-    }
-  }
-
-  return continueAction(context, payload);
 };
 
 export const createModals = <

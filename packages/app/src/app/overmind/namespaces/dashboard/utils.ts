@@ -1,6 +1,8 @@
 import {
+  BranchFragment,
   ProjectFragment,
   SidebarCollectionDashboardFragment as Collection,
+  BranchWithPrFragment,
 } from 'app/graphql/types';
 import { DELETE_ME_COLLECTION } from './types';
 
@@ -18,11 +20,25 @@ export function getDecoratedCollection(
   };
 }
 
-export function sortByNameAscending(
-  a: ProjectFragment,
-  b: ProjectFragment
+export function sortByLastAccessed(
+  a: ProjectFragment | BranchFragment | BranchWithPrFragment,
+  b: ProjectFragment | BranchFragment | BranchWithPrFragment
 ): number {
-  const repoA = a.repository.owner + '/' + a.repository.name;
-  const repoB = b.repository.owner + '/' + b.repository.name;
-  return repoA < repoB ? -1 : 1;
+  if (!a.lastAccessedAt || !b.lastAccessedAt) {
+    return 1;
+  }
+
+  return new Date(a.lastAccessedAt) < new Date(b.lastAccessedAt) ? 1 : -1;
+}
+
+export function getProjectUniqueKey({
+  teamId,
+  owner,
+  name,
+}: {
+  teamId: string;
+  owner: string;
+  name: string;
+}): string {
+  return `${teamId}/${owner}/${name}`;
 }

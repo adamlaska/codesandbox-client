@@ -11,6 +11,7 @@ import { parseResolutions } from './dynamic/resolutions';
 import { resolveDependencyInfo } from './dynamic/resolve-dependency';
 import { getDependency as getPrebundledDependency } from './preloaded/fetch-dependencies';
 import { IResponse, mergeDependencies } from './merge-dependency';
+import { getSandpackSecret, removeSandpackSecret } from '../sandpack-secret';
 
 let loadedDependencyCombination: string | null = null;
 let manifest: IResponse | null = null;
@@ -80,6 +81,7 @@ export type UpdateProgressFunc = (progress: {
   done: number;
   total: number;
   remainingDependencies: string[];
+  dependencyName: string;
 }) => void;
 
 export async function getDependenciesFromSources(
@@ -105,7 +107,7 @@ export async function getDependenciesFromSources(
       forceFetchDynamically
     );
 
-    const updateLoadScreen = () => {
+    const updateLoadScreen = (depName: string) => {
       const progress = totalDependencies - remainingDependencies.length;
       const total = totalDependencies;
 
@@ -113,6 +115,7 @@ export async function getDependenciesFromSources(
         done: progress,
         total,
         remainingDependencies,
+        dependencyName: depName,
       });
     };
 
@@ -127,7 +130,7 @@ export async function getDependenciesFromSources(
             remainingDependencies.indexOf(depName),
             1
           );
-          updateLoadScreen();
+          updateLoadScreen(depName);
         })
       )
     );
@@ -155,7 +158,7 @@ export async function getDependenciesFromSources(
               remainingDependencies.indexOf(depName),
               1
             );
-            updateLoadScreen();
+            updateLoadScreen(depName);
           })
       )
     );
@@ -169,7 +172,11 @@ export async function getDependenciesFromSources(
       ...dynamicLoadedDependencies,
       ...prebundledLoadedDependencies,
     ]);
-  } catch (err) {
+  } catch (err: any) {
+    if (getSandpackSecret()) {
+      removeSandpackSecret();
+    }
+
     err.message = `Could not fetch dependencies, please try again in a couple seconds: ${err.message}`;
     dispatch(actions.notifications.show(err.message, 'error'));
 

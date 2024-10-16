@@ -1,18 +1,13 @@
-/**
- * SidebarState, required to be named just State. Can be an interface instead
- * of a type though.
- *
- * ❗️ TODO: Add sidebar notification indicator state
- */
-export interface State {
+import { SandboxFragmentDashboardFragment as Sandbox } from 'app/graphql/types';
+import { RepoInfo } from './types';
+
+type SidebarState = {
   hasSyncedSandboxes: boolean | null;
   hasTemplates: boolean | null;
-}
-
-/**
- * Default state for the sidebar
- */
-export const state: State = {
-  hasSyncedSandboxes: null,
-  hasTemplates: null,
+  repositories: Array<RepoInfo>;
+  sandboxes: Array<Sandbox>;
 };
+
+export type State = Record<string, SidebarState>;
+
+export const state: State = {};

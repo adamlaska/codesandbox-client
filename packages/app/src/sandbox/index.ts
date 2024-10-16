@@ -11,9 +11,12 @@ import { getSandboxId } from '@codesandbox/common/lib/utils/url-generator';
 import { getPreviewSecret } from 'sandbox-hooks/preview-secret';
 import { show404 } from 'sandbox-hooks/not-found-screen';
 
+import {
+  requestSandpackSecretFromApp,
+  removeSandpackSecret,
+} from 'sandpack-core/lib/sandpack-secret';
 import compile, { getCurrentManager } from './compile';
 
-const host = process.env.CODESANDBOX_HOST;
 const withServiceWorker = !process.env.SANDPACK;
 const debug = _debug('cs:sandbox');
 
@@ -68,6 +71,23 @@ requirePolyfills().then(() => {
             data: {},
           });
         }
+      } else if (data.type === 'get-modules') {
+        const manager = getCurrentManager();
+
+        if (manager) {
+          dispatch({
+            type: 'all-modules',
+            data: manager.getModules(),
+          });
+        }
+      } else if (data.type === 'sign-in') {
+        await requestSandpackSecretFromApp(data.teamId);
+
+        window.location.reload();
+      } else if (data.type === 'sign-out') {
+        removeSandpackSecret();
+
+        window.location.reload();
       }
     }
   }
@@ -82,7 +102,7 @@ requirePolyfills().then(() => {
     // We need to fetch the sandbox ourselves...
     const id = getSandboxId();
     window
-      .fetch(host + `/api/v1/sandboxes/${id}`, {
+      .fetch(`/api/v1/sandboxes/${id}`, {
         headers: {
           Accept: 'application/json',
           Authorization: `Basic ${getPreviewSecret()}`,

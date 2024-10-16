@@ -15,7 +15,7 @@ export const ContextMenu = () => {
     },
   } = useAppState();
   const {
-    editor: { forkExternalSandbox },
+    dashboard: { forkSandbox },
     profile: {
       addFeaturedSandboxes,
       removeFeaturedSandboxes,
@@ -120,7 +120,11 @@ export const ContextMenu = () => {
       </Menu.Item>
       <Menu.Item
         onSelect={() => {
-          forkExternalSandbox({ sandboxId, openInNewWindow: true });
+          forkSandbox({
+            sandboxId,
+            openInNewWindow: true,
+            redirectAfterFork: true,
+          });
         }}
       >
         Fork sandbox

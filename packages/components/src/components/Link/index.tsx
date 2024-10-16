@@ -2,9 +2,11 @@ import React from 'react';
 import styled from 'styled-components';
 import css from '@styled-system/css';
 import { Text, ITextProps } from '../Text';
+import { IElementProps } from '../Element';
 
 type LinkProps = React.AnchorHTMLAttributes<HTMLAnchorElement> &
   React.AnchorHTMLAttributes<HTMLSpanElement> &
+  IElementProps &
   ITextProps & {
     as?: any;
     to?: string;
@@ -14,12 +16,12 @@ const LinkElement = styled(Text).attrs(p => ({
   as: ((p as unknown) as { as: string }).as || 'a',
 }))<LinkProps>(
   css({
-    cursor: 'pointer',
+    color: '#a6a6a6',
     textDecoration: 'none',
     transition: 'color ease',
     transitionDuration: theme => theme.speeds[2],
     ':hover, :focus': {
-      color: 'foreground',
+      color: '#ffffff',
     },
   })
 );

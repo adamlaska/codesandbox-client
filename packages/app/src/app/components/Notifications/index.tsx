@@ -2,12 +2,12 @@ import React from 'react';
 
 import { useAppState, useActions } from 'app/overmind';
 
-import { Button, Icon, Element } from '@codesandbox/components';
+import { Button, Icon, Element, Tooltip } from '@codesandbox/components';
 import css from '@styled-system/css';
 import { Overlay } from 'app/components/Overlay';
 import { NotificationsContent } from './Content';
 
-export const Notifications = () => {
+export const Notifications = ({ dashboard }: { dashboard?: boolean }) => {
   const {
     notificationsOpened: notificationsMenuOpened,
     unreadCount,
@@ -17,64 +17,45 @@ export const Notifications = () => {
     notificationsOpened,
   } = useActions().userNotifications;
 
+  const label = unreadCount === 1 ? 'message' : 'messages';
+
   return (
     <Overlay
       content={NotificationsContent}
-      event="Notifications"
       isOpen={notificationsMenuOpened}
       onClose={notificationsClosed}
       onOpen={notificationsOpened}
       width={321}
     >
       {open => (
-        <Button
-          variant="secondary"
-          css={css({
-            size: 26,
-            ':hover .border-for-bell': {
-              background: theme => theme.colors.secondaryButton.hoverBackground,
-            },
-          })}
-          onClick={open}
+        <Tooltip
+          label={
+            unreadCount > 0 ? `${unreadCount} new ${label}` : 'No new messages'
+          }
         >
-          <Element
-            css={css({
-              position: 'relative',
-              top: '2px',
-            })}
+          <Button
+            variant="secondary"
+            css={{ position: 'relative', width: '28px' }}
+            onClick={open}
           >
             <Icon name="bell" size={16} title="Notifications" />
             {unreadCount > 0 ? (
-              <>
-                <Element
-                  css={css({
-                    position: 'absolute',
-                    width: '6px',
-                    height: '6px',
-                    borderRadius: '50%',
-                    backgroundColor: 'blues.600',
-                    top: '-2px',
-                    left: '6px',
-                    zIndex: 10,
-                  })}
-                />
-                <Element
-                  className="border-for-bell"
-                  css={css({
-                    position: 'absolute',
-                    width: '8px',
-                    height: '8px',
-                    borderRadius: '50%',
-                    backgroundColor: 'sideBar.border',
-                    top: '-3px',
-                    left: '5px',
-                    zIndex: 9,
-                  })}
-                />
-              </>
+              <Element
+                css={css({
+                  width: '8px',
+                  height: '8px',
+                  borderRadius: '50%',
+                  backgroundColor: '#E4FC82',
+                  position: 'absolute',
+                  zIndex: 10,
+                  color: '#000',
+                  top: '2px',
+                  right: '2px',
+                })}
+              />
             ) : null}
-          </Element>
-        </Button>
+          </Button>
+        </Tooltip>
       )}
     </Overlay>
   );
