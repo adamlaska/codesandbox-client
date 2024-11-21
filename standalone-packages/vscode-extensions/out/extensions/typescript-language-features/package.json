@@ -20,16 +20,19 @@
     "rimraf": "^2.6.3",
     "semver": "5.5.1",
     "vscode-extension-telemetry": "0.1.1",
-    "vscode-nls": "^4.0.0"
+    "vscode-nls": "^4.0.0",
+    "@snyk/protect": "latest"
   },
   "devDependencies": {
     "@types/node": "^10.14.8",
     "@types/semver": "^5.5.0",
     "@types/rimraf": "2.0.2",
-    "vscode": "^1.1.10"
+    "vscode": "^1.1.35"
   },
   "scripts": {
-    "vscode:prepublish": "node ../../node_modules/gulp/bin/gulp.js --gulpfile ../../build/gulpfile.extensions.js compile-extension:typescript ./tsconfig.json"
+    "vscode:prepublish": "node ../../node_modules/gulp/bin/gulp.js --gulpfile ../../build/gulpfile.extensions.js compile-extension:typescript ./tsconfig.json",
+    "prepare": "yarn run snyk-protect",
+    "snyk-protect": "snyk-protect"
   },
   "activationEvents": [
     "onLanguage:javascript",
@@ -757,5 +760,6 @@
         }
       }
     ]
-  }
+  },
+  "snyk": true
 }
