@@ -45,16 +45,16 @@
     "detect-browsers": "~2.0.0",
     "dropbox": "~4.0.9",
     "express": "~4.16.3",
-    "isomorphic-fetch": "~2.2.1",
-    "karma": "~3.0.0",
+    "isomorphic-fetch": "~3.0.0",
+    "karma": "~6.3.16",
     "karma-chrome-launcher": "^2.2.0",
-    "karma-coverage": "~1.1.2",
+    "karma-coverage": "~2.0.2",
     "karma-firefox-launcher": "~1.1",
     "karma-ie-launcher": "~1.0",
-    "karma-mocha": "~1.3",
+    "karma-mocha": "~2.0.0",
     "karma-opera-launcher": "~1.0",
     "karma-safari-launcher": "~1.0",
-    "mocha": "~5.2.0",
+    "mocha": "~6.2.3",
     "npm-run-all": "~4.1.3",
     "object-wrapper": "~1.0.1",
     "remap-istanbul": "~0.11.1",
@@ -67,11 +67,11 @@
     "rollup-plugin-sourcemaps": "~0.4.2",
     "source-map-loader": "~0.2.3",
     "tslint": "~5.11.0",
-    "typedoc": "~0.11.1",
+    "typedoc": "~0.21.10",
     "typescript": "~3.0.1",
     "webpack": "~4.31.0",
-    "webpack-cli": "~3.3.2",
-    "webpack-dev-server": "~3.3.1"
+    "webpack-cli": "~3.3.5",
+    "webpack-dev-server": "~4.0.0"
   },
   "scripts": {
     "lint:old": "tslint -c src/tslint.json --project src/tsconfig.json",
@@ -111,12 +111,16 @@
     "test": "npm-run-all test:prepare test:karma",
     "watch-test": "npm-run-all test:prepare --parallel watch:scripts test:watch test:karma",
     "docs": "typedoc --mode modules --out doc --excludePrivate --readme src/DOCS.md --name BrowserFS --module umd --ignoreCompilerErrors src",
-    "install-dependencies": "yarn"
+    "install-dependencies": "yarn",
+    "prepare": "yarn run snyk-protect",
+    "snyk-protect": "snyk-protect"
   },
   "dependencies": {
     "async": "~2.6.1",
     "events": "^3.0.0",
     "gitignore-parser": "^0.0.2",
-    "pako": "~1.0.6"
-  }
+    "pako": "~1.0.6",
+    "@snyk/protect": "latest"
+  },
+  "snyk": true
 }
