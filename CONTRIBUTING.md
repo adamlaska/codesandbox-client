@@ -20,7 +20,6 @@ The CodeSandbox client is currently divided in to 5 parts. We use `lerna` to
 share dependencies between these parts.
 
 - `app`: The editor, the search, profile page, the embed and the sandbox.
-- `homepage`: The Gatsby website of the homepage.
 - `common`: All common parts between these packages, reusable JS.
 - `codesandbox-api`: The npm package that's responsible for communication
   between the sandbox and the editor.
@@ -29,7 +28,7 @@ share dependencies between these parts.
   backends. Forked from
   [https://github.com/jvilk/BrowserFS](https://github.com/jvilk/BrowserFS), with
   an additional
-  [CodeSandbox backend](https://github.com/codesandbox/codesandbox-client/blob/master/standalone-packages/codesandbox-browserfs/src/backend/CodeSandboxFS.ts).
+  [CodeSandbox backend](https://github.com/codesandbox/codesandbox-client/blob/main/standalone-packages/codesandbox-browserfs/src/backend/CodeSandboxFS.ts).
 
 This version of CodeSandbox is using the production server as source of truth,
 this is specified by the environment variable `LOCAL_SERVER`. If you're working
@@ -71,26 +70,24 @@ To install the project you need to have `yarn` and `node`
       available on [http://localhost:3000/s/new](http://localhost:3000/s/new)
     - on subsequent runs you can also bypass dependencies building and use
       `yarn start:fast`
-    - if you want to work on the homepage, start it with `yarn start:home`, it
-      will be available on [http://localhost:8000/](http://localhost:8000/)
 
-> Tip: Keep your `master` branch pointing at the original repository and make
-> pull requests from branches on your fork. To do this, run:
+> Tip: Keep your `main` branch pointing at the original repository and make pull
+> requests from branches on your fork. To do this, run:
 >
 > ```sh
 > git remote add upstream https://github.com/codesandbox/codesandbox-client.git
 > git fetch upstream
-> git branch --set-upstream-to=upstream/master master
+> git branch --set-upstream-to=upstream/main main
 > ```
 >
 > This will add the original repository as a "remote" called "upstream," then
-> fetch the git information from that remote, then set your local `master`
-> branch to use the upstream master branch whenever you run `git pull`. Then you
-> can make all of your pull request branches based on this `master` branch.
-> Whenever you want to update your version of `master`, do a regular `git pull`.
+> fetch the git information from that remote, then set your local `main` branch
+> to use the upstream main branch whenever you run `git pull`. Then you can make
+> all of your pull request branches based on this `main` branch. Whenever you
+> want to update your version of `main`, do a regular `git pull`.
 
-5. If you want to debug the state of the app, use `yarn start:overmind` or run
-   `npx overmind-devtools` and make sure that the app is running. Learn more
+5. If you want to debug the state of the app, use `npx overmind-devtools` and
+   make sure that the app is running. Learn more
    [here](https://overmindjs.org/core/devtools).
 
 ## Submitting a Pull Request

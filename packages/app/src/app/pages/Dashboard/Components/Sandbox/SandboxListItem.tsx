@@ -5,7 +5,6 @@ import {
   Column,
   Stack,
   Element,
-  Badge,
   Text,
   Input,
   ListAction,
@@ -14,16 +13,19 @@ import {
 } from '@codesandbox/components';
 import css from '@styled-system/css';
 import { SandboxItemComponentProps } from './types';
+import { SandboxBadge } from './SandboxBadge';
 
 export const SandboxListItem = ({
   sandbox,
   sandboxTitle,
   sandboxLocation,
-  lastUpdated,
+  username,
+  timeAgo,
   viewCount,
   TemplateIcon,
   PrivacyIcon,
   screenshotUrl,
+  restricted,
   // interactions
   selected,
   onClick,
@@ -37,17 +39,16 @@ export const SandboxListItem = ({
   onInputKeyDown,
   onSubmit,
   onInputBlur,
-  restricted,
   // drag preview
   thumbnailRef,
-  opacity,
+  isDragging,
   ...props
 }: SandboxItemComponentProps) => (
   <ListAction
     align="center"
     css={css({
       paddingX: 0,
-      opacity,
+      opacity: isDragging ? 0.25 : 1,
       height: 64,
       borderBottom: '1px solid',
       borderBottomColor: 'grays.600',
@@ -58,7 +59,7 @@ export const SandboxListItem = ({
         cursor: 'default',
         backgroundColor: selected ? 'purpleOpaque' : 'list.hoverBackground',
       },
-      ':has(button:hover)': {
+      ':has(button:hover), :has(button:focus-visible)': {
         backgroundColor: 'transparent',
       },
     })}
@@ -69,6 +70,7 @@ export const SandboxListItem = ({
         alignItems: 'center',
         width: '100%',
         height: '100%',
+        outline: 'none',
       })}
       onClick={onClick}
       onDoubleClick={onDoubleClick}
@@ -134,7 +136,9 @@ export const SandboxListItem = ({
                       size={3}
                       weight="medium"
                       maxWidth="100%"
-                      css={{ color: restricted ? '#999999' : '#E5E5E5' }}
+                      css={{
+                        color: restricted ? '#999999' : '#E5E5E5',
+                      }}
                     >
                       {sandboxTitle}
                     </Text>
@@ -146,11 +150,9 @@ export const SandboxListItem = ({
         </Column>
         {/* Column span 0 on mobile because the Grid is bugged */}
         <Column span={[0, 2, 2]}>
-          {restricted ? (
-            <Stack align="center">
-              <Badge variant="trial">Restricted</Badge>
-            </Stack>
-          ) : null}
+          <Stack align="center">
+            <SandboxBadge sandbox={sandbox} restricted={restricted} />
+          </Stack>
         </Column>
         <Column span={[0, 3, 3]} as={Stack} align="center">
           {sandbox.removedAt ? (
@@ -173,10 +175,7 @@ export const SandboxListItem = ({
               variant={selected ? 'body' : 'muted'}
               maxWidth="100%"
             >
-              <Text css={css({ display: ['none', 'none', 'inline'] })}>
-                updated
-              </Text>{' '}
-              {lastUpdated}
+              {timeAgo} {username ? `by ${username}` : ''}
             </Text>
           )}
         </Column>

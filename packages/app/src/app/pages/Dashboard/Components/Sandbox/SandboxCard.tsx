@@ -1,394 +1,369 @@
 import React from 'react';
-import { RepoFragmentDashboardFragment } from 'app/graphql/types';
 import {
-  Badge,
   Stack,
   Text,
   Input,
   Icon,
   IconButton,
-  Link,
-  Tooltip,
+  InteractiveOverlay,
   Element,
 } from '@codesandbox/components';
-import css from '@styled-system/css';
 import { shortDistance } from '@codesandbox/common/lib/utils/short-distance';
+import styled from 'styled-components';
 import { SandboxItemComponentProps } from './types';
-
-const useImageLoaded = (url: string) => {
-  const [loaded, setLoaded] = React.useState(false);
-  React.useEffect(() => {
-    const img = new Image();
-
-    if (url) {
-      img.onload = () => {
-        setLoaded(true);
-      };
-
-      img.src = url;
-
-      if (img.complete) {
-        setLoaded(true);
-      }
-    }
-
-    return function cleanup() {
-      img.src = '';
-    };
-  }, [url]);
-
-  return loaded;
-};
+import { StyledCard } from '../shared/StyledCard';
+import { useSandboxThumbnail } from './useSandboxThumbnail';
+import { Brightness } from './useImageBrightness';
+import { SandboxBadge } from './SandboxBadge';
 
 type SandboxTitleProps = {
-  stoppedScrolling: boolean;
-  isFrozen: boolean;
-  prNumber?: number;
-  originalGit?: RepoFragmentDashboardFragment['originalGit'];
-  restricted?: boolean;
+  brightness?: Brightness;
 } & Pick<
   SandboxItemComponentProps,
   | 'editing'
+  | 'onClick'
+  | 'onDoubleClick'
+  | 'onBlur'
   | 'onContextMenu'
   | 'onSubmit'
   | 'onChange'
   | 'onInputKeyDown'
   | 'onInputBlur'
-  | 'PrivacyIcon'
+  | 'TemplateIcon'
   | 'newTitle'
   | 'sandboxTitle'
+  | 'interaction'
 >;
 
 const SandboxTitle: React.FC<SandboxTitleProps> = React.memo(
   ({
-    isFrozen,
-    originalGit,
-    prNumber,
     editing,
-    stoppedScrolling,
+    onClick,
+    onDoubleClick,
+    onBlur,
     onContextMenu,
     onSubmit,
     onChange,
     onInputKeyDown,
     onInputBlur,
-    PrivacyIcon,
     newTitle,
     sandboxTitle,
-    restricted,
-  }) => (
-    <Stack justify="space-between" marginLeft={5} marginRight={2}>
-      {editing ? (
-        <form onSubmit={onSubmit}>
-          <Input
-            autoFocus
-            value={newTitle}
-            onChange={onChange}
-            onKeyDown={onInputKeyDown}
-            onBlur={onInputBlur}
-          />
-        </form>
-      ) : (
-        <Stack gap={2} align="center">
-          {prNumber ? (
-            <Link
-              title="Open pull request on GitHub"
-              css={{ display: 'flex' }}
-              href={`https://github.com/${originalGit.username}/${originalGit.repo}/pull/${prNumber}`}
-              target="_blank"
-            >
-              <Icon name="pr" color="#5BC266" />
-            </Link>
-          ) : null}
-          {isFrozen && (
-            <Tooltip label={stoppedScrolling ? 'Frozen Sandbox' : null}>
-              <span style={{ marginTop: '2px' }}>
-                <Icon size={14} title="Frozen Sandbox" name="frozen" />
-              </span>
-            </Tooltip>
-          )}
+    TemplateIcon,
+    interaction,
+    brightness,
+    ...props
+  }) => {
+    return (
+      <Stack justify="space-between">
+        {editing ? (
+          <form onSubmit={onSubmit}>
+            <Input
+              css={{
+                border: 0,
+                marginTop: '-4px',
+                marginLeft: '16px',
+                fontWeight: 500,
+              }}
+              autoFocus
+              value={newTitle}
+              onChange={onChange}
+              onKeyDown={onInputKeyDown}
+              onBlur={onInputBlur}
+            />
+          </form>
+        ) : (
+          <Stack gap={3} align="flex-start" css={{ overflow: 'hidden' }}>
+            <Element css={{ flexShrink: 0 }}>
+              <TemplateIcon width="16" height="16" />
+            </Element>
 
-          <PrivacyIcon />
-          <Text
-            size={3}
-            weight="medium"
-            css={{ color: restricted ? '#999999' : '#E5E5E5' }}
-          >
-            {sandboxTitle}
-          </Text>
-        </Stack>
-      )}
+            {interaction === 'button' ? (
+              <InteractiveOverlay.Button
+                css={{ overflow: 'hidden' }}
+                radius={4}
+                onClick={onClick}
+                onDoubleClick={editing ? undefined : onDoubleClick}
+                onBlur={onBlur}
+                onContextMenu={onContextMenu}
+                title={sandboxTitle}
+                {...props}
+              >
+                <Text size={13} weight="medium" color="inherit" truncate>
+                  {sandboxTitle}
+                </Text>
+              </InteractiveOverlay.Button>
+            ) : (
+              <InteractiveOverlay.Item radius={4}>
+                <Element
+                  css={{
+                    display: 'flex',
+                    overflow: 'hidden',
+                    lineHeight: '16px',
+                    color: 'inherit',
+                  }}
+                  onClick={onClick}
+                  onDoubleClick={editing ? undefined : onDoubleClick}
+                  onBlur={onBlur}
+                  onContextMenu={onContextMenu}
+                  title={sandboxTitle}
+                  {...props}
+                >
+                  <Text size={13} weight="medium" color="inherit" truncate>
+                    {sandboxTitle}
+                  </Text>
+                </Element>
+              </InteractiveOverlay.Item>
+            )}
+          </Stack>
+        )}
 
-      {!stoppedScrolling ? (
-        // During scrolling we don't show the button, because it takes 1ms to render a button,
-        // while this doesn't sound like a lot, we need to render 4 new grid items when you scroll down,
-        // and this can't take more than 12ms. Showing another thing than the button shaves off a 4ms of
-        // render time and allows you to scroll with a minimum of 30fps.
-        <div
-          style={{
-            width: 26,
-            height: 26,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-          css={css({ color: 'mutedForeground' })}
-        >
-          <Icon size={9} name="more" />
-        </div>
-      ) : (
         <IconButton
+          css={{
+            marginRight: '-4px',
+            marginTop: '-4px',
+          }} /* Align icon to top-right corner */
           variant="square"
           name="more"
-          size={14}
+          size={16}
           title="Sandbox Actions"
           onClick={onContextMenu}
+          className="sandbox-actions"
         />
-      )}
-    </Stack>
-  )
-);
-
-type SandboxStatsProps = Pick<
-  SandboxItemComponentProps,
-  'noDrag' | 'viewCount' | 'sandboxLocation' | 'lastUpdated'
->;
-const SandboxStats: React.FC<SandboxStatsProps> = React.memo(
-  ({ noDrag, viewCount, sandboxLocation, lastUpdated }) => {
-    const views = (
-      <Stack align="center" key="views">
-        <Icon style={{ marginRight: 4, minWidth: 14 }} name="eye" size={14} />{' '}
-        {viewCount}
       </Stack>
     );
+  }
+);
 
-    const lastUpdatedText = (
-      <Text key="last-updated" css={{ whiteSpace: 'nowrap' }}>
-        {shortDistance(lastUpdated)}
+type SandboxStatsProps = {
+  isFrozen?: boolean;
+} & Pick<
+  SandboxItemComponentProps,
+  'noDrag' | 'timeAgo' | 'PrivacyIcon' | 'sandbox' | 'restricted'
+>;
+const SandboxStats: React.FC<SandboxStatsProps> = React.memo(
+  ({ isFrozen, noDrag, timeAgo, PrivacyIcon, sandbox, restricted }) => {
+    const boxType = sandbox.isV2 ? 'devbox' : 'sandbox';
+    const timeAgoText = (
+      <Text size={12} truncate>
+        {shortDistance(timeAgo)}
       </Text>
     );
-
-    const sandboxLocationText = sandboxLocation && (
-      <Text key="location" maxWidth="100%">
-        {sandboxLocation}
-      </Text>
-    );
-
-    const footer = [
-      views,
-      noDrag ? null : lastUpdatedText,
-      sandboxLocationText,
-    ];
 
     return (
-      <div>
-        <Stack
-          marginLeft={5}
-          as={Text}
-          align="center"
-          gap={4}
-          size={3}
-          variant="muted"
-        >
-          {footer.map(item => item)}
+      <Stack
+        justify="space-between"
+        align="center"
+        css={{
+          height: '16px',
+          color: '#A6A6A6',
+        }}
+        className="sandbox-stats"
+      >
+        <Stack gap={2} align="center">
+          <PrivacyIcon />
+          {isFrozen && (
+            <Icon size={16} title={`Protected ${boxType}`} name="frozen" />
+          )}
+          {noDrag ? null : timeAgoText}
         </Stack>
-      </div>
+        <SandboxBadge sandbox={sandbox} restricted={restricted} />
+      </Stack>
     );
   }
 );
 
 export const SandboxCard = ({
   sandbox,
-  sandboxTitle,
-  sandboxLocation,
   noDrag,
-  autoFork,
-  lastUpdated,
-  viewCount,
-  TemplateIcon,
+  timeAgo,
   PrivacyIcon,
   screenshotUrl,
-  // interactions
-  isScrolling,
-  selected,
-  onClick,
-  onDoubleClick,
-  onBlur,
-  onContextMenu,
-  // editing
-  editing,
-  newTitle,
-  onChange,
-  onInputKeyDown,
-  onSubmit,
-  onInputBlur,
   restricted,
+  // interactions
+  selected,
   // drag preview
   thumbnailRef,
-  opacity,
+  isDragging,
+  username,
+  'data-selection-id': dataSelectionId,
   ...props
 }: SandboxItemComponentProps) => {
-  const [stoppedScrolling, setStoppedScrolling] = React.useState(false);
-  React.useEffect(() => {
-    // We only want to render the screenshot once the user has stopped scrolling
-    if (!isScrolling && !stoppedScrolling) {
-      setStoppedScrolling(true);
-    }
-  }, [isScrolling, stoppedScrolling]);
+  const thumbnail = useSandboxThumbnail({
+    thumbnailUrl: screenshotUrl,
+  });
+
+  let textColor = '#EBEBEB'; // default
+  let userNameTextColor = '#A6A6A6';
+
+  if (restricted) {
+    textColor = thumbnail.isCustom ? textColor : '#999999';
+    userNameTextColor = textColor;
+  } else if (thumbnail?.brightness && thumbnail.isCustom) {
+    textColor = thumbnail.brightness === 'light' ? '#0E0E0E' : '#FFFFFF';
+    userNameTextColor = textColor;
+  }
 
   return (
-    <Stack
-      direction="vertical"
-      onClick={onClick}
-      onDoubleClick={editing ? undefined : onDoubleClick}
-      onBlur={onBlur}
-      onContextMenu={onContextMenu}
-      {...props}
-      css={{
-        position: 'relative',
-        width: '100%',
-        height: 240,
-        backgroundColor: selected ? '#292929' : '#1D1D1D',
-        border: '1px solid',
-        borderColor: selected ? '#242424' : 'transparent',
-        borderRadius: '4px',
-        overflow: 'hidden',
-        transition: 'background ease-in-out',
-        transitionDuration: '100ms',
-        opacity,
-        ':hover': {
-          backgroundColor: '#292929',
-        },
-        ':has(button:hover)': {
-          backgroundColor: '#1D1D1D',
-        },
-        ':focus-visible': {
-          borderColor: '#242424',
-        },
-      }}
-    >
-      {restricted ? (
-        <Element css={{ position: 'absolute', top: 8, left: 8 }}>
-          <Badge variant="trial">Restricted</Badge>
-        </Element>
-      ) : null}
+    <InteractiveOverlay>
+      <StyledCard
+        dimmed={isDragging}
+        data-selection-id={dataSelectionId}
+        css={{
+          overflow: 'hidden',
 
-      <Thumbnail
-        sandboxId={sandbox.id}
-        thumbnailRef={thumbnailRef}
-        TemplateIcon={TemplateIcon}
-        screenshotUrl={screenshotUrl}
-        screenshotOutdated={sandbox.screenshotOutdated}
-        showBetaBadge={sandbox.isV2}
-      />
+          // Reset padding for now as it's set in the card
+          // content component instead.
+          padding: 0,
 
-      <Stack
-        direction="vertical"
-        justify="space-between"
-        css={css({ flexGrow: 1, paddingY: 5 })}
-      >
-        <SandboxTitle
-          originalGit={sandbox.originalGit}
-          prNumber={sandbox.prNumber}
-          isFrozen={sandbox.isFrozen && !sandbox.customTemplate}
-          editing={editing}
-          stoppedScrolling={stoppedScrolling}
-          onContextMenu={onContextMenu}
-          onSubmit={onSubmit}
-          onChange={onChange}
-          onInputKeyDown={onInputKeyDown}
-          onInputBlur={onInputBlur}
-          PrivacyIcon={PrivacyIcon}
-          newTitle={newTitle}
-          sandboxTitle={sandboxTitle}
-          restricted={restricted}
-        />
-        <SandboxStats
-          noDrag={noDrag}
-          lastUpdated={lastUpdated}
-          viewCount={viewCount}
-          sandboxLocation={sandboxLocation}
-        />
-      </Stack>
-    </Stack>
-  );
-};
+          // Display grid to overlap the children without needing
+          // position absolute.
+          display: 'grid',
+          gridTemplate: '1fr / 1fr',
 
-const Thumbnail = ({
-  sandboxId,
-  thumbnailRef,
-  TemplateIcon,
-  showBetaBadge,
-  screenshotUrl,
-  screenshotOutdated,
-}) => {
-  // 0. Use template icon as starting point and fallback
-  // 1. se sandbox.screenshotUrl if it can be successfully loaded (might not exist)
-  // 2. If screenshot is outdated, lazily load a newer screenshot. Switch when image loaded.
-  const SCREENSHOT_TIMEOUT = 5000;
+          // Text color based on restricted and brightness
+          color: textColor,
+          transition: 'color ease-in, background-color ease-in',
+          transitionDuration: '.1s', // === theme.speeds[2]
 
-  const [latestScreenshotUrl, setLatestScreenshotUrl] = React.useState(null);
+          // Hide sandbox stats and context menu button if the
+          // sandbox thumbnail isCustom and not restricted
+          '.sandbox-stats, .sandbox-actions':
+            thumbnail.isCustom && !restricted
+              ? {
+                  opacity: 0,
+                  transition: 'opacity ease-in',
+                  transitionDuration: '.150s', // === theme.speeds[3]
+                }
+              : undefined,
 
-  const screenshotUrlLoaded = useImageLoaded(screenshotUrl);
-  const latestScreenshotUrlLoaded = useImageLoaded(latestScreenshotUrl);
+          '&:hover, &:focus-within': {
+            // update background color in case there is
+            // no thumbnail.
+            backgroundColor: '#252525',
 
-  let screenshotToUse: string;
-  if (latestScreenshotUrlLoaded) screenshotToUse = latestScreenshotUrl;
-  else if (screenshotUrlLoaded) screenshotToUse = screenshotUrl;
+            // update text color to contrast scrim
+            color: '#EBEBEB',
 
-  React.useEffect(
-    function lazyLoadLatestScreenshot() {
-      const timer = window.setTimeout(() => {
-        if (!screenshotOutdated) return;
-        const url = `https://codesandbox.io/api/v1/sandboxes/${sandboxId}/screenshot.png`;
-        setLatestScreenshotUrl(url);
-      }, SCREENSHOT_TIMEOUT);
+            [`${CardThumbnail}`]: {
+              '&::before':
+                thumbnail.isCustom && !restricted
+                  ? {
+                      // show scrim
+                      opacity: 0.8,
+                    }
+                  : {
+                      // change scrim color when it's already
+                      // shown without hover
+                      backgroundColor: '#252525',
+                    },
+            },
 
-      return () => window.clearTimeout(timer);
-    },
-    [sandboxId, screenshotOutdated, setLatestScreenshotUrl]
-  );
-
-  return (
-    <>
-      <div
-        ref={thumbnailRef}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          height: '120px',
-          backgroundColor: '#242424',
-          backgroundSize: 'cover',
-          backgroundPosition: 'center center',
-          backgroundRepeat: 'no-repeat',
-          [screenshotToUse
-            ? 'backgroundImage'
-            : null]: `url(${screenshotToUse})`,
+            // Show sandbox stats and context menu button if the
+            // sandbox thumbnail isCustom and not restricted as it's
+            // already shown in that case
+            '.sandbox-stats, .sandbox-actions':
+              thumbnail.isCustom && !restricted
+                ? {
+                    opacity: 1,
+                  }
+                : undefined,
+          },
         }}
       >
-        {!screenshotUrlLoaded && (
-          <TemplateIcon
-            style={{ filter: 'grayscale(1)', opacity: 0.1 }}
-            width="60"
-            height="60"
+        {thumbnail?.isLoaded ? (
+          <CardThumbnail
+            // The thumbnailRef is used for the drag and
+            // drop preview.
+            ref={thumbnailRef}
+            hasCustomThumbnail={thumbnail.isCustom}
+            forceScrim={restricted}
+            source={thumbnail.src}
           />
-        )}
-      </div>
-      <Stack gap={1} css={{ position: 'absolute', top: 8, right: 8 }}>
-        {showBetaBadge && <Badge icon="cloud">Beta</Badge>}
-        <div
-          style={{
-            width: 16,
-            height: 16,
-            borderRadius: 4,
-            backgroundColor: '#343434',
-            borderColor: '#343434',
-            padding: 2,
-          }}
-        >
-          <TemplateIcon width="16" height="16" />
-        </div>
-      </Stack>
-    </>
+        ) : null}
+
+        <CardContent selected={selected}>
+          <Stack direction="vertical" gap={0}>
+            <SandboxTitle brightness={thumbnail.brightness} {...props} />
+            {username ? (
+              <Text
+                size={12}
+                truncate
+                css={{ marginLeft: 28, color: userNameTextColor }}
+              >
+                Created by {username}
+              </Text>
+            ) : null}
+          </Stack>
+          <SandboxStats
+            noDrag={noDrag}
+            timeAgo={timeAgo}
+            isFrozen={sandbox.isFrozen && !sandbox.customTemplate}
+            PrivacyIcon={PrivacyIcon}
+            restricted={restricted}
+            sandbox={sandbox}
+          />
+        </CardContent>
+      </StyledCard>
+    </InteractiveOverlay>
   );
 };
+
+const CardThumbnail = styled.div<{
+  source: string;
+  hasCustomThumbnail: boolean;
+  forceScrim: boolean;
+}>`
+  grid-row: 1 / -1;
+  grid-column: 1 / -1;
+
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
+  background-image: url(${({ source }) => source});
+
+  // The ::before pseudo elements acts as a scrim over the thumbnail
+  // image.
+  &::before {
+    content: '';
+    position: absolute;
+    height: 100%;
+    width: 100%;
+    // top: 0;
+    // right: 0;
+    background-color: #212121;
+
+    // For custom thumbs we only show the scrim on hover. The hover is triggered
+    // from the css property on the StyledCard comopnent.
+    opacity: ${({ hasCustomThumbnail, forceScrim }) =>
+      hasCustomThumbnail && !forceScrim ? 0 : 0.8};
+    transition: opacity ease-in;
+    transition-duration: ${({ theme }) => theme.speeds[2]}; // 100ms
+  }
+
+  // Target siblings and add position relative to make sure the
+  // siblings overlap the absolute positioned scrim.
+  & ~ * {
+    position: relative;
+  }
+`;
+
+const CardContent = styled.div<{ selected: boolean }>`
+  grid-row: 1 / -1;
+  grid-column: 1 / -1;
+
+  // Set padding on this element instead of on the parent
+  // to allow the thumbnail and scrim to be full width.
+  padding: 24px;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow: hidden;
+
+  ${({ selected }) =>
+    selected &&
+    `
+    outline: #ac9cff solid 2px;
+    outline-offset: -2px;
+    `}
+`;

@@ -9,7 +9,7 @@ import { isBabel7 } from '@codesandbox/common/lib/utils/is-babel-7';
 import { absolute } from '@codesandbox/common/lib/utils/path';
 import VERSION from '@codesandbox/common/lib/version';
 import { clearErrorTransformers, dispatch, reattach } from 'codesandbox-api';
-import { flatten } from 'lodash';
+import flatten from 'lodash-es/flatten';
 import initializeErrorTransformers from 'sandbox-hooks/errors/transformers';
 import { inject, uninject } from 'sandbox-hooks/react-error-overlay/overlay';
 import {
@@ -28,6 +28,11 @@ import {
   NpmRegistryOpts,
 } from 'sandpack-core/lib/npm/dynamic/fetch-protocols/npm-registry';
 import {
+  getSandpackSecret,
+  removeSandpackSecret,
+  getProtocolAndHostWithSSE,
+} from 'sandpack-core/lib/sandpack-secret';
+import {
   evalBoilerplates,
   findBoilerplate,
   getBoilerplates,
@@ -39,6 +44,7 @@ import handleExternalResources from './external-resources';
 import setScreen, { resetScreen } from './status-screen';
 import { showRunOnClick } from './status-screen/run-on-click';
 import { SCRIPT_VERSION } from '.';
+import { startServiceWorker } from './worker';
 
 let manager: Manager | null = null;
 let actionsEnabled = false;
@@ -118,6 +124,7 @@ const BABEL_DEPENDENCIES = [
 // Dependencies that we actually don't need, we will replace this by a dynamic
 // system in the future
 const PREINSTALLED_DEPENDENCIES = [
+  'web-vitals', // Blocked by ad blockers :(
   'react-scripts',
   'react-scripts-ts',
   'parcel-bundler',
@@ -318,10 +325,12 @@ async function initializeManager(
     hasFileResolver = false,
     customNpmRegistries = [],
     reactDevTools,
+    teamId,
   }: {
     hasFileResolver?: boolean;
     customNpmRegistries?: NpmRegistry[];
     reactDevTools?: 'legacy' | 'latest';
+    teamId?: string;
   } = {}
 ) {
   const newManager = new Manager(
@@ -335,8 +344,61 @@ async function initializeManager(
     }
   );
 
+  /**
+   * If a team-id is provided, we can mount a registryUrl and proxy
+   * dependencies request through CSB proxy
+   */
+  if (teamId) {
+    const sandpackToken = getSandpackSecret();
+
+    if (!sandpackToken) {
+      dispatch({
+        type: 'action',
+        action: 'show-error',
+        message: 'NPM_REGISTRY_UNAUTHENTICATED_REQUEST',
+      });
+
+      throw new Error('NPM_REGISTRY_UNAUTHENTICATED_REQUEST');
+    }
+
+    const domain = getProtocolAndHostWithSSE();
+
+    const responseRegistry = await fetch(`${domain}/api/v1/sandpack/registry`, {
+      headers: { Authorization: `Bearer ${sandpackToken}` },
+    }).catch(() => {
+      removeSandpackSecret();
+      throw new Error('NPM_REGISTRY_UNAUTHENTICATED_REQUEST');
+    });
+
+    const registry = (await responseRegistry.json()) as {
+      auth_type: string;
+      enabled_scopes: string[];
+      limit_to_scopes: true;
+      proxy_enabled: false;
+      registry_auth_key: string;
+      registry_type: string;
+      registry_url: string;
+    };
+
+    customNpmRegistries.push({
+      enabledScopes: registry.enabled_scopes,
+      limitToScopes: registry.limit_to_scopes,
+      proxyEnabled: registry.proxy_enabled,
+      registryUrl:
+        registry.registry_url || `${domain}/api/v1/sandpack/registry/`,
+      registryAuthToken: registry.registry_auth_key || sandpackToken,
+      registryAuthType: registry.auth_type,
+    });
+  }
+
   // Add the custom registered npm registries
-  customNpmRegistries.forEach(registry => {
+  for (const registry of customNpmRegistries) {
+    if (!registry.registryUrl) {
+      throw new Error(
+        'Unable to fetch required dependency: neither a `registryUrl` nor a `codesandboxTeamId` was provided.'
+      );
+    }
+
     const cleanUrl = registry.registryUrl.replace(/\/$/, '');
 
     const options: NpmRegistryOpts = { proxyEnabled: registry.proxyEnabled };
@@ -366,7 +428,7 @@ async function initializeManager(
       protocol,
       condition: protocol.condition,
     });
-  });
+  }
 
   return newManager;
 }
@@ -473,6 +535,8 @@ interface CompileOptions {
   disableDependencyPreprocessing?: boolean;
   clearConsoleDisabled?: boolean;
   reactDevTools?: 'legacy' | 'latest';
+  teamId?: string;
+  experimental_enableServiceWorker?: boolean;
 }
 
 async function compile(opts: CompileOptions) {
@@ -493,7 +557,13 @@ async function compile(opts: CompileOptions) {
     disableDependencyPreprocessing = false,
     clearConsoleDisabled = false,
     reactDevTools,
+    teamId,
+    experimental_enableServiceWorker = false,
   } = opts;
+
+  if (experimental_enableServiceWorker) {
+    await startServiceWorker();
+  }
 
   if (firstLoad) {
     // Clear the console on first load, but don't clear the console on HMR updates
@@ -561,6 +631,7 @@ async function compile(opts: CompileOptions) {
         hasFileResolver,
         customNpmRegistries,
         reactDevTools,
+        teamId,
       }));
 
     let dependencies: NPMDependencies = getDependencies(
@@ -568,6 +639,13 @@ async function compile(opts: CompileOptions) {
       templateDefinition,
       configurations
     );
+
+    dispatch({
+      type: 'dependencies',
+      data: {
+        state: 'downloading_manifest',
+      },
+    });
 
     dependencies = await manager.preset.processDependencies(dependencies);
 
@@ -583,7 +661,17 @@ async function compile(opts: CompileOptions) {
 
     const { manifest, isNewCombination } = await loadDependencies(
       dependencies,
-      ({ done, total, remainingDependencies }) => {
+      ({ done, total, remainingDependencies, dependencyName }) => {
+        dispatch({
+          type: 'dependencies',
+          data: {
+            state: 'downloaded_module',
+            total,
+            progress: done,
+            name: dependencyName,
+          },
+        });
+
         if (!showLoadingScreen) {
           return;
         }
@@ -668,6 +756,13 @@ async function compile(opts: CompileOptions) {
       });
     }
 
+    dispatch({
+      type: 'dependencies',
+      data: {
+        state: 'starting',
+      },
+    });
+
     dispatch({ type: 'status', status: 'transpiling' });
     manager.setStage('transpilation');
 
@@ -729,9 +824,14 @@ async function compile(opts: CompileOptions) {
         // preferred.
         const serverProvidedHTML =
           modules[htmlEntries[0]] || manager.preset.htmlDisabled;
+        // If it has the loading screen element, it definitely didn't server-render
+        const isLoadingScreen = Boolean(
+          document.getElementById('csb-loading-screen')
+        );
         if (
           !serverProvidedHTML ||
           !firstLoad ||
+          isLoadingScreen ||
           process.env.LOCAL_SERVER ||
           process.env.SANDPACK
         ) {
@@ -822,11 +922,9 @@ async function compile(opts: CompileOptions) {
 
     setTimeout(async () => {
       try {
-        testRunner =
-          testRunner ||
-          (await import('./eval/tests/jest-lite')
-            .then(s => s.default)
-            .then(TestRunner => new TestRunner(manager)));
+        const jestLiteModule = await import('./eval/tests/jest-lite');
+        const TestRunner = jestLiteModule.default;
+        testRunner = testRunner || new TestRunner(manager);
 
         sendTestCount(modules);
       } catch (e) {

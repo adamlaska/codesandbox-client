@@ -13,10 +13,6 @@ const assets = [
     to: '',
   },
   !SANDBOX_ONLY && {
-    from: 'packages/homepage/public',
-    to: '',
-  },
-  !SANDBOX_ONLY && {
     from: 'standalone-packages/monaco-editor/release/min/vs',
     to: 'public/14/vs',
   },
@@ -27,6 +23,14 @@ const assets = [
   {
     from: 'packages/app/public',
     to: '',
+  },
+  {
+    from: '.env',
+    to: '.env',
+  },
+  {
+    from: 'env.sh',
+    to: 'env.sh',
   },
 ].filter(Boolean);
 

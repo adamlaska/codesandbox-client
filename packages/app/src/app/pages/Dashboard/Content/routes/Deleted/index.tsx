@@ -7,7 +7,11 @@ import { VariableGrid } from 'app/pages/Dashboard/Components/VariableGrid';
 import { SelectionProvider } from 'app/pages/Dashboard/Components/Selection';
 import { DashboardGridItem, PageTypes } from 'app/pages/Dashboard/types';
 import { SandboxFragmentDashboardFragment } from 'app/graphql/types';
-import { getPossibleTemplates } from '../../utils';
+import { EmptyPage } from 'app/pages/Dashboard/Components/EmptyPage';
+import { Loading } from '@codesandbox/components';
+
+const DESCRIPTION =
+  'Drag sandboxes or templates to this page to delete them.<br />Any deleted sandboxes or templates will be permanentely excluded after 30 days.';
 
 export const Deleted = () => {
   const {
@@ -49,14 +53,17 @@ export const Deleted = () => {
           getFilteredSandboxes(deletedSandboxesByTime.older)
         ),
       ]
-    : [
-        { type: 'header', title: 'Deleted this week' },
-        { type: 'skeleton-row' },
-        { type: 'header', title: 'Deleted earlier' },
-        { type: 'skeleton-row' },
-      ];
+    : null;
 
   const pageType: PageTypes = 'deleted';
+  let pageState: 'loading' | 'ready' | 'empty';
+  if (!items) {
+    pageState = 'loading';
+  } else if (items.length > 0) {
+    pageState = 'ready';
+  } else {
+    pageState = 'empty';
+  }
 
   return (
     <SelectionProvider activeTeamId={activeTeam} page={pageType} items={items}>
@@ -66,11 +73,27 @@ export const Deleted = () => {
       <Header
         title="Recently deleted"
         activeTeam={activeTeam}
-        showFilters
-        showSortOptions
-        templates={getPossibleTemplates(sandboxes.DELETED)}
+        showSortOptions={pageState === 'ready'}
       />
-      <VariableGrid page={pageType} items={items} />
+      {pageState === 'loading' && (
+        <EmptyPage.StyledWrapper
+          css={{
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <Loading size={12} />
+        </EmptyPage.StyledWrapper>
+      )}
+      {pageState === 'empty' && (
+        <EmptyPage.StyledWrapper>
+          <EmptyPage.StyledDescription
+            as="p"
+            dangerouslySetInnerHTML={{ __html: DESCRIPTION }}
+          />
+        </EmptyPage.StyledWrapper>
+      )}
+      {pageState === 'ready' && <VariableGrid page={pageType} items={items} />}
     </SelectionProvider>
   );
 };

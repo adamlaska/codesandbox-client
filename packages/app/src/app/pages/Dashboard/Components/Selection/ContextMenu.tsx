@@ -4,9 +4,7 @@ import {
   DashboardSandbox,
   DashboardTemplate,
   DashboardFolder,
-  DashboardRepo,
-  DashboardNewMasterBranch,
-  DashboardCommunitySandbox,
+  DashboardSyncedRepo,
   PageTypes,
   DashboardBranch,
   DashboardRepository,
@@ -15,10 +13,7 @@ import {
   MultiMenu,
   SandboxMenu,
   FolderMenu,
-  RepoMenu,
-  MasterMenu,
   ContainerMenu,
-  CommunitySandboxMenu,
 } from './ContextMenus';
 import { BranchMenu } from './ContextMenus/BranchMenu';
 import { RepositoryMenu } from './ContextMenus/RepositoryMenu';
@@ -39,12 +34,13 @@ interface IContextMenuProps extends IMenuProps {
   selectedIds: string[];
   sandboxes: Array<DashboardSandbox | DashboardTemplate>;
   folders: Array<DashboardFolder>;
-  repos?: Array<DashboardRepo>;
+  repos?: Array<DashboardSyncedRepo>;
   branches: Array<DashboardBranch>;
   repositories: Array<DashboardRepository>;
   setRenaming: null | ((value: boolean) => void);
   createNewFolder: () => void;
-  createNewSandbox: (() => void) | null;
+  createNewSandbox: () => void;
+  createNewDevbox: () => void;
   page: PageTypes;
 }
 
@@ -61,6 +57,7 @@ export const ContextMenu: React.FC<IContextMenuProps> = ({
   setRenaming,
   createNewFolder,
   createNewSandbox,
+  createNewDevbox,
   page,
 }) => {
   if (!visible) return null;
@@ -69,28 +66,14 @@ export const ContextMenu: React.FC<IContextMenuProps> = ({
     | DashboardFolder
     | DashboardSandbox
     | DashboardTemplate
-    | DashboardRepo
-    | DashboardNewMasterBranch
-    | DashboardCommunitySandbox
+    | DashboardSyncedRepo
     | DashboardBranch
     | DashboardRepository
   > = selectedIds.map(id => {
     if (id.startsWith('/')) {
       if (repos && repos.length) {
         const repo = repos.find(f => '/' + f.name === id);
-        return { type: 'repo', ...repo };
-      }
-
-      if (id.startsWith('/github')) {
-        const all = id.split(`/`);
-        return {
-          type: 'new-master-branch',
-          repo: {
-            owner: all[all.length - 2],
-            name: all[all.length - 1],
-            branch: 'master',
-          },
-        };
+        return { type: 'synced-sandbox-repo', ...repo };
       }
 
       const folder = folders.find(f => f.path === id);
@@ -123,6 +106,7 @@ export const ContextMenu: React.FC<IContextMenuProps> = ({
     menu = (
       <ContainerMenu
         createNewSandbox={createNewSandbox}
+        createNewDevbox={createNewDevbox}
         createNewFolder={createNewFolder}
       />
     );
@@ -138,10 +122,7 @@ export const ContextMenu: React.FC<IContextMenuProps> = ({
         page={page}
         selectedItems={
           selectedItems as Array<
-            | DashboardFolder
-            | DashboardSandbox
-            | DashboardTemplate
-            | DashboardCommunitySandbox
+            DashboardFolder | DashboardSandbox | DashboardTemplate
           >
         }
       />
@@ -154,12 +135,6 @@ export const ContextMenu: React.FC<IContextMenuProps> = ({
     menu = <SandboxMenu item={selectedItems[0]} setRenaming={setRenaming} />;
   } else if (selectedItems[0].type === 'folder') {
     menu = <FolderMenu folder={selectedItems[0]} setRenaming={setRenaming} />;
-  } else if (selectedItems[0].type === 'repo') {
-    menu = <RepoMenu repo={selectedItems[0]} />;
-  } else if (selectedItems[0].type === 'new-master-branch') {
-    menu = <MasterMenu repo={selectedItems[0].repo} />;
-  } else if (selectedItems[0].type === 'community-sandbox') {
-    menu = <CommunitySandboxMenu item={selectedItems[0]} />;
   }
 
   return (

@@ -11,7 +11,7 @@ import { ESC } from '@codesandbox/common/lib/utils/keycodes';
 import { Container, ContentContainer } from './elements';
 
 interface IOverlayProps {
-  event: string;
+  event?: string;
   isOpen?: boolean;
   onOpen?: () => void;
   onClose?: () => void;
@@ -113,8 +113,6 @@ export const Overlay: React.FC<IOverlayProps> = ({
     }
   };
 
-  const multiplier = width < POPOVER_WIDTH ? 0.9 : 0.75;
-
   return (
     <Container ref={element}>
       {children(handleOpen)}
@@ -134,10 +132,7 @@ export const Overlay: React.FC<IOverlayProps> = ({
                 height: 'auto',
                 borderRadius: 4,
                 top: bounds.current.top + bounds.current.height + 8,
-                left:
-                  bounds.current.left +
-                  bounds.current.width -
-                  width * multiplier,
+                left: bounds.current.left + bounds.current.width - width,
                 width,
               }}
               transition={{

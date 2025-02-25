@@ -2,12 +2,11 @@ import {
   SandboxFragmentDashboardFragment as Sandbox,
   RepoFragmentDashboardFragment as Repo,
   TemplateFragmentDashboardFragment as Template,
-  NpmRegistryFragment,
   TeamFragmentDashboardFragment,
   BranchFragment as Branch,
   ProjectFragment as Repository,
+  ProjectWithBranchesFragment as RepositoryWithBranches,
 } from 'app/graphql/types';
-import { DashboardAlbum } from 'app/pages/Dashboard/types';
 import isSameWeek from 'date-fns/isSameWeek';
 import { sortBy } from 'lodash-es';
 import { zonedTimeToUtc } from 'date-fns-tz';
@@ -24,7 +23,6 @@ export type DashboardSandboxStructure = {
   SEARCH: Sandbox[] | null;
   TEMPLATE_HOME: Template[] | null;
   SHARED: Sandbox[] | null;
-  LIKED: Sandbox[] | null;
   ALL: {
     [path: string]: Sandbox[];
   } | null;
@@ -37,26 +35,17 @@ export type DashboardSandboxStructure = {
       sandboxes: Repo[];
     };
   } | null;
-  ALWAYS_ON: Sandbox[] | null;
 };
 
 export type State = {
   sandboxes: DashboardSandboxStructure;
   teams: Array<TeamFragmentDashboardFragment>;
-  workspaceSettings: {
-    npmRegistry: NpmRegistryFragment | null;
-  };
   allCollections: DELETE_ME_COLLECTION[] | null;
   selectedSandboxes: string[];
   trashSandboxIds: string[];
   isDragging: boolean;
   viewMode: 'grid' | 'list';
   orderBy: OrderBy;
-  filters: {
-    blacklistedTemplates: string[];
-    search: string;
-  };
-  isTemplateSelected: (templateName: string) => boolean;
   getFilteredSandboxes: (
     sandboxes: Array<Sandbox | Repo | Template['sandbox']>
   ) => Sandbox[];
@@ -64,17 +53,21 @@ export type State = {
     week: Sandbox[];
     older: Sandbox[];
   };
-  curatedAlbums: DashboardAlbum[];
   contributions: Branch[] | null;
   /**
    * v2 repositories (formerly projects)
-   * stores as a record of team id and repositories (or null).
+   * stores as a record of team id and repositories (or undefined).
    * implemented this way to overcome an issue where the
    * delayed synced repositories fetch on a previous team
    * overrides the current team data.
    * @see {@link https://linear.app/codesandbox/issue/XTD-375}
    */
-  repositories: Record<string, Repository[] | null> | null;
+  repositoriesByTeamId: Record<string, Repository[] | undefined>;
+
+  /**
+   * Repository with branches cached based on `team/owner/repo`
+   */
+  repositoriesWithBranches: Record<string, RepositoryWithBranches | undefined>;
   starredRepos: Array<{ owner: string; name: string }>;
   /**
    * Use these variables to track if items are being removed. This way
@@ -83,6 +76,7 @@ export type State = {
    */
   removingRepository: { owner: string; name: string } | null;
   removingBranch: { id: string } | null;
+  creatingBranch: boolean;
 };
 
 export const DEFAULT_DASHBOARD_SANDBOXES: DashboardSandboxStructure = {
@@ -90,14 +84,12 @@ export const DEFAULT_DASHBOARD_SANDBOXES: DashboardSandboxStructure = {
   TEMPLATES: null,
   DELETED: null,
   SHARED: null,
-  LIKED: null,
   RECENT_BRANCHES: null,
   RECENT_SANDBOXES: null,
   SEARCH: null,
   TEMPLATE_HOME: null,
   ALL: null,
   REPOS: null,
-  ALWAYS_ON: null,
 };
 
 export const state: State = {
@@ -105,10 +97,6 @@ export const state: State = {
   viewMode: 'grid',
   allCollections: null,
   teams: [],
-  workspaceSettings: {
-    npmRegistry: null,
-  },
-  curatedAlbums: [],
   deletedSandboxesByTime: derived(({ sandboxes }: State) => {
     const deletedSandboxes = sandboxes.DELETED;
     if (!deletedSandboxes)
@@ -147,25 +135,17 @@ export const state: State = {
     order: 'desc',
     field: 'updatedAt',
   },
-  filters: {
-    blacklistedTemplates: [],
-    search: '',
-  },
-  isTemplateSelected: derived(({ filters }: State) => (templateName: string) =>
-    !filters.blacklistedTemplates.includes(templateName)
-  ),
   getFilteredSandboxes: derived(
-    ({ orderBy, filters }: State) => (
+    ({ orderBy }: State) => (
       sandboxes: Array<Sandbox | Template['sandbox']>
     ) => {
       const orderField = orderBy.field;
       const orderOrder = orderBy.order;
-      const { blacklistedTemplates } = filters;
 
       const isDateField =
         orderField === 'insertedAt' || orderField === 'updatedAt';
 
-      let orderedSandboxes = (sortBy(sandboxes, s => {
+      let orderedSandboxes = sortBy(sandboxes, s => {
         const sandbox = s!;
         if (isDateField) {
           return +zonedTimeToUtc(sandbox[orderField], 'Etc/UTC');
@@ -181,12 +161,7 @@ export const state: State = {
         }
 
         return sandbox[orderField];
-      }) as Sandbox[]).filter(
-        x =>
-          x.source &&
-          x.source.template &&
-          blacklistedTemplates.indexOf(x.source.template) === -1
-      );
+      }) as Sandbox[];
 
       if (orderOrder === 'desc') {
         orderedSandboxes = orderedSandboxes.reverse();
@@ -196,8 +171,10 @@ export const state: State = {
     }
   ),
   contributions: null,
-  repositories: null,
+  repositoriesByTeamId: {},
+  repositoriesWithBranches: {},
   starredRepos: [],
   removingRepository: null,
   removingBranch: null,
+  creatingBranch: false,
 };

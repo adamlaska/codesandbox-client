@@ -49,6 +49,8 @@ export interface ViewTab {
   id: string;
   closeable?: boolean;
   options?: any;
+  hideOnEmbedPage?: boolean;
+  hideOnPrem?: boolean;
 }
 
 export type ViewConfig = {
@@ -58,7 +60,15 @@ export type ViewConfig = {
 
 const CLIENT_VIEWS: ViewConfig[] = [
   {
-    views: [{ id: 'codesandbox.browser' }, { id: 'codesandbox.tests' }],
+    views: [
+      { id: 'codesandbox.browser' },
+      { id: 'codesandbox.tests' },
+      {
+        id: 'codesandbox.terminalUpgrade',
+        hideOnEmbedPage: true,
+        hideOnPrem: true,
+      },
+    ],
   },
   {
     views: [{ id: 'codesandbox.console' }, { id: 'codesandbox.problems' }],

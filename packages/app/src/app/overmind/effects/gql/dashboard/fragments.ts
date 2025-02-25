@@ -16,8 +16,9 @@ export const sandboxFragmentDashboard = gql`
     screenshotOutdated
     viewCount
     likeCount
-    alwaysOn
     isV2
+    draft
+    restricted
 
     source {
       template
@@ -25,6 +26,7 @@ export const sandboxFragmentDashboard = gql`
 
     customTemplate {
       id
+      iconUrl
     }
 
     forkedTemplate {
@@ -35,9 +37,13 @@ export const sandboxFragmentDashboard = gql`
 
     collection {
       path
+      id
     }
 
     authorId
+    author {
+      username
+    }
     teamId
 
     permissions {
@@ -119,6 +125,8 @@ export const teamFragmentDashboard = gql`
     description
     creatorId
     avatarUrl
+    frozen
+    insertedAt
     settings {
       minimumPrivacy
     }
@@ -126,6 +134,7 @@ export const teamFragmentDashboard = gql`
     userAuthorizations {
       userId
       authorization
+      teamManager
     }
 
     users {
@@ -142,10 +151,26 @@ export const teamFragmentDashboard = gql`
       avatarUrl
     }
 
-    subscription {
+    subscription(includeCancelled: true) {
       origin
       type
+      status
       paymentProvider
+    }
+
+    featureFlags {
+      ubbBeta
+      friendOfCsb
+    }
+
+    limits {
+      includedPublicSandboxes
+      includedPrivateSandboxes
+    }
+
+    usage {
+      publicSandboxesQuantity
+      privateSandboxesQuantity
     }
   }
 `;
@@ -157,8 +182,11 @@ export const currentTeamInfoFragment = gql`
     description
     inviteToken
     name
+    type
     avatarUrl
-
+    legacy
+    frozen
+    insertedAt
     users {
       id
       avatarUrl
@@ -174,6 +202,8 @@ export const currentTeamInfoFragment = gql`
     userAuthorizations {
       userId
       authorization
+      teamManager
+      drafts
     }
 
     settings {
@@ -181,55 +211,80 @@ export const currentTeamInfoFragment = gql`
       preventSandboxExport
       preventSandboxLeaving
       defaultAuthorization
+      aiConsent {
+        privateRepositories
+        privateSandboxes
+        publicRepositories
+        publicSandboxes
+      }
     }
 
-    subscription {
-      id
-      type
-      status
-      origin
-      quantity
-      unitPrice
-      currency
+    subscription(includeCancelled: true) {
       billingInterval
-      updateBillingUrl
-      nextBillDate
-      paymentProvider
       cancelAt
       cancelAtPeriodEnd
-      trialStart
+      currency
+      id
+      nextBillDate
+      origin
+      paymentMethodAttached
+      paymentProvider
+      quantity
+      status
       trialEnd
+      trialStart
+      type
+      unitPrice
+      updateBillingUrl
+    }
+
+    subscriptionSchedule {
+      billingInterval
+      current {
+        items {
+          name
+          quantity
+          unitAmount
+          unitAmountDecimal
+        }
+        startDate
+        endDate
+      }
+      upcoming {
+        items {
+          name
+          quantity
+          unitAmount
+          unitAmountDecimal
+        }
+        startDate
+        endDate
+      }
     }
 
     limits {
-      maxEditors
-      maxPrivateProjects
-      maxPrivateSandboxes
-      maxPublicProjects
-      maxPublicSandboxes
+      includedCredits
+      includedVmTier
+      onDemandCreditLimit
+      includedPublicSandboxes
+      includedPrivateSandboxes
     }
 
     usage {
-      editorsQuantity
-      privateProjectsQuantity
-      privateSandboxesQuantity
-      publicProjectsQuantity
+      sandboxes
+      credits
       publicSandboxesQuantity
+      privateSandboxesQuantity
     }
-  }
-`;
 
-export const npmRegistryFragment = gql`
-  fragment npmRegistry on PrivateRegistry {
-    id
-    authType
-    enabledScopes
-    limitToScopes
-    proxyEnabled
-    registryAuthKey
-    registryType
-    registryUrl
-    teamId
+    featureFlags {
+      ubbBeta
+      friendOfCsb
+    }
+
+    metadata {
+      useCases
+    }
   }
 `;
 
@@ -239,6 +294,10 @@ export const branchFragment = gql`
     name
     contribution
     lastAccessedAt
+    upstream
+    owner {
+      username
+    }
     project {
       repository {
         ... on GitHubRepository {
@@ -248,14 +307,69 @@ export const branchFragment = gql`
           private
         }
       }
+      team {
+        id
+      }
+    }
+  }
+`;
+
+export const branchWithPRFragment = gql`
+  fragment branchWithPR on Branch {
+    id
+    name
+    contribution
+    lastAccessedAt
+    owner {
+      username
+    }
+    upstream
+    project {
+      repository {
+        ... on GitHubRepository {
+          defaultBranch
+          name
+          owner
+          private
+        }
+      }
+      team {
+        id
+      }
+    }
+    pullRequests {
+      title
+      number
+      additions
+      deletions
     }
   }
 `;
 
 export const projectFragment = gql`
   fragment project on Project {
+    appInstalled
+    branchCount
+    lastAccessedAt
+    repository {
+      ... on GitHubRepository {
+        owner
+        name
+        defaultBranch
+        private
+      }
+    }
+    team {
+      id
+    }
+  }
+`;
+
+export const projectWithBranchesFragment = gql`
+  fragment projectWithBranches on Project {
+    appInstalled
     branches {
-      ...branch
+      ...branchWithPR
     }
     repository {
       ... on GitHubRepository {
@@ -265,6 +379,26 @@ export const projectFragment = gql`
         private
       }
     }
+    team {
+      id
+    }
   }
-  ${branchFragment}
+  ${branchWithPRFragment}
+`;
+
+export const githubRepoFragment = gql`
+  fragment githubRepo on GithubRepo {
+    id
+    authorization
+    fullName
+    name
+    private
+    updatedAt
+    pushedAt
+    owner {
+      id
+      login
+      avatarUrl
+    }
+  }
 `;

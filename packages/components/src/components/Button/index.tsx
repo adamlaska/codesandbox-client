@@ -9,7 +9,8 @@ const variantStyles = {
   primary: {
     backgroundColor: 'button.background',
     color: 'button.foreground',
-    ':hover:not(:disabled)': {
+
+    ':hover:not(:disabled), :focus:not(:disabled)': {
       // hoverBackground is polyfilled and uses a gradient
       // so we use background and not backgroundColor
 
@@ -18,42 +19,38 @@ const variantStyles = {
       // TODO @sid: extend our system to make background work as well
       background: theme => theme.colors.button.hoverBackground,
     },
-    ':focus:not(:disabled)': {
-      // we use the same colors for hover and focus
-      // but we add an active state to give
-      background: theme => theme.colors.button.hoverBackground,
-    },
   },
   secondary: {
-    backgroundColor: 'secondaryButton.background',
-    color: 'secondaryButton.foreground',
-    // same technique as primary
+    backgroundColor: '#ffffff1a',
+    color: '#F2F2F2',
+
     ':hover:not(:disabled)': {
-      background: theme => theme.colors.secondaryButton.hoverBackground,
-    },
-    ':focus:not(:disabled)': {
-      background: theme => theme.colors.secondaryButton.hoverBackground,
+      background: '#333333',
     },
   },
   link: {
     backgroundColor: 'transparent',
-    color: 'mutedForeground',
-    // same technique as primary
-    ':hover:not(:disabled)': {
+    color: '#dbdbdb',
+
+    ':hover:not(:disabled), :focus:not(:disabled)': {
       color: 'foreground',
+      backgroundColor: '#E5E5E51A',
     },
-    ':focus:not(:disabled)': {
+  },
+  ghost: {
+    backgroundColor: 'transparent',
+    color: '#dbdbdb',
+
+    ':hover:not(:disabled), :focus:not(:disabled)': {
       color: 'foreground',
+      backgroundColor: '#FFFFFF1A',
     },
   },
   danger: {
     backgroundColor: 'dangerButton.background',
     color: 'dangerButton.foreground',
-    // same technique as primary
-    ':hover:not(:disabled)': {
-      background: theme => theme.colors.dangerButton.hoverBackground,
-    },
-    ':focus:not(:disabled)': {
+
+    ':hover:not(:disabled), :focus:not(:disabled)': {
       background: theme => theme.colors.dangerButton.hoverBackground,
     },
   },
@@ -61,7 +58,7 @@ const variantStyles = {
     backgroundColor: '#FFFFFF',
     color: '#0E0E0E',
 
-    ':hover': {
+    ':hover:not(:disabled), :focus:not(:disabled)': {
       backgroundColor: '#E0E0E0', // three up in the gray scale (gray[400])
     },
   },
@@ -69,7 +66,7 @@ const variantStyles = {
     backgroundColor: '#0E0E0E',
     color: '#FFFFFF',
 
-    ':hover': {
+    ':hover:not(:disabled), :focus:not(:disabled)': {
       backgroundColor: '#252525', // three down in the black scale (black[500])
     },
   },
@@ -77,9 +74,28 @@ const variantStyles = {
     backgroundColor: '#644ED7',
     color: '#FFFFFF',
 
-    ':hover': {
+    ':hover:not(:disabled), :focus:not(:disabled)': {
       backgroundColor: '#7B61FF',
     },
+  },
+};
+
+const sizeStyles = {
+  regular: {
+    paddingY: '4px',
+    paddingX: '8px',
+    height: '28px', // match with inputs
+    fontSize: '13px',
+    fontWeight: 'medium',
+    lineHeight: '16px', // trust the height
+  },
+  large: {
+    height: 'auto',
+    paddingY: '12px',
+    paddingX: '16px',
+    fontWeight: 500,
+    fontSize: '16px',
+    whiteSpace: 'nowrap',
   },
 };
 
@@ -87,23 +103,17 @@ const commonStyles = {
   display: 'inline-flex',
   justifyContent: 'center',
   alignItems: 'center',
-  flex: 'none', // as a flex child
   cursor: 'pointer',
+  flex: 'none', // as a flex child
   fontFamily: 'Inter, sans-serif',
-  paddingY: 0,
   width: '100%',
-  paddingX: 2,
-  height: '26px', // match with inputs
-  fontSize: 2,
-  fontWeight: 'medium',
-  lineHeight: 1, // trust the height
   border: 'none',
-  borderRadius: 'small',
-  transition: 'all ease-in',
+  borderRadius: '4px',
+  transition: 'background .3s, color .3s, box-shadow .3s',
   textDecoration: 'none',
-  transitionDuration: theme => theme.speeds[2],
 
-  ':focus': {
+  ':focus-visible': {
+    boxShadow: `0 0 0 2px #AC9CFF`,
     outline: 'none',
   },
   ':active:not(:disabled)': {
@@ -128,11 +138,13 @@ export interface ButtonProps
   variant?:
     | 'primary'
     | 'secondary'
+    | 'ghost'
     | 'link'
     | 'danger'
     | 'light'
     | 'dark'
     | 'trial';
+  size?: 'regular' | 'large';
   loading?: boolean;
   href?: string;
   rel?: string; // Only use when using href and as="a"
@@ -144,10 +156,23 @@ export interface ButtonProps
 
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   function Button(
-    { variant = 'primary', loading, css = {}, autoWidth, as: pAs, ...props },
+    {
+      variant = 'primary',
+      size = 'regular',
+      loading,
+      css = {},
+      autoWidth,
+      as: pAs,
+      ...props
+    },
     ref
   ) {
-    const styles = deepmerge.all([variantStyles[variant], commonStyles, css]);
+    const styles = deepmerge.all([
+      variantStyles[variant],
+      sizeStyles[size],
+      commonStyles,
+      css,
+    ]);
     const usedAs = pAs || (props.to ? Link : 'button');
     // default type is button unless props.as was changed
     const type = usedAs === 'button' && 'button';
@@ -183,7 +208,7 @@ const Dot = styled.span`
   animation: ${transition} 1.5s ease-out infinite;
 `;
 
-const AnimatingDots = () => (
+export const AnimatingDots = () => (
   <>
     <VisuallyHidden>Loading</VisuallyHidden>
     <span role="presentation">

@@ -44,6 +44,7 @@ export const FolderListItem = ({
 
   return (
     <ListAction
+      as="button"
       onClick={onClick}
       onDoubleClick={onDoubleClick}
       onContextMenu={onContextMenu}
@@ -56,7 +57,7 @@ export const FolderListItem = ({
           cursor: 'default',
           backgroundColor: selected ? 'purpleOpaque' : 'list.hoverBackground',
         },
-        ':has(button:hover)': {
+        ':has(button:hover), :has(button:focus-visible)': {
           backgroundColor: 'transparent',
         },
         width: '100%',
@@ -65,8 +66,8 @@ export const FolderListItem = ({
         borderBottomColor: 'grays.600',
       })}
     >
-      <Grid css={{ width: 'calc(100% - 26px - 8px)' }}>
-        <Column span={[12, 5, 5]}>
+      <Grid css={{ width: 'calc(100% - 26px - 8px)' }} columnGap={4}>
+        <Column span={[12, 7, 6]}>
           <Stack gap={4} align="center" marginLeft={2}>
             <Stack
               as="div"
@@ -104,11 +105,11 @@ export const FolderListItem = ({
             </Stack>
           </Stack>
         </Column>
-        <Column span={[0, 4, 4]} as={Stack} align="center">
+        <Column span={[0, 2, 3]} as={Stack} align="center">
           {!isNewFolder ? (
             <Text size={3} block variant={selected ? 'body' : 'muted'}>
               {numberOfSandboxes || 0}{' '}
-              {numberOfSandboxes === 1 ? 'sandbox' : 'sandboxes'}
+              {numberOfSandboxes === 1 ? 'item' : 'items'}
             </Text>
           ) : null}
         </Column>

@@ -4,10 +4,6 @@ import {
   RepoFragmentDashboardFragment,
   BranchFragment as Branch,
   ProjectFragment as Repository,
-  Sandbox,
-  Album,
-  User,
-  Maybe,
 } from 'app/graphql/types';
 import { Context } from 'app/overmind';
 import {
@@ -30,7 +26,6 @@ export type DashboardSandbox = {
     originalGit?: RepoFragmentDashboardFragment['originalGit'];
   };
   noDrag?: boolean;
-  autoFork?: boolean;
 };
 
 export type DashboardTemplate = {
@@ -41,7 +36,6 @@ export type DashboardTemplate = {
     originalGit?: RepoFragmentDashboardFragment['originalGit'];
   };
   noDrag?: boolean;
-  autoFork?: boolean;
   /**
    * Whether this column should be hidden if it's on the second row of subsequent templates
    */
@@ -53,8 +47,8 @@ export type DashboardFolder = DELETE_ME_COLLECTION &
     type: 'folder';
   };
 
-export type DashboardRepo = {
-  type: 'repo';
+export type DashboardSyncedRepo = {
+  type: 'synced-sandbox-repo';
   path?: string;
   lastEdited?: Date;
   branch: string;
@@ -64,7 +58,7 @@ export type DashboardRepo = {
   isScrolling?: boolean;
 };
 
-export type DashboardRepoSandbox = {
+export type DashboardSyncedRepoSandbox = {
   type: 'sandbox';
   sandbox: RepoFragmentDashboardFragment;
 };
@@ -80,10 +74,6 @@ export type DashboardHeader = {
   title: string;
   showMoreLink?: string;
   showMoreLabel?: string;
-};
-
-export type DashboardNewSandbox = {
-  type: 'new-sandbox';
 };
 
 export type DashboardSkeletonRow = {
@@ -108,38 +98,8 @@ type DashboardBlankRowFill = {
 };
 
 export type DashboardSkeleton = {
-  type: 'default-skeleton' | 'solid-skeleton';
+  type: 'solid-skeleton';
   viewMode: ViewMode;
-};
-
-export type DashboardNewMasterBranch = {
-  type: 'new-master-branch';
-  repo: {
-    owner: string;
-    name: string;
-    branch: string;
-  };
-};
-
-export type DashboardCommunitySandbox = {
-  type: 'community-sandbox';
-  noDrag: true;
-  autoFork: false;
-  sandbox: Pick<
-    DashboardSandbox['sandbox'],
-    'id' | 'alias' | 'title' | 'description' | 'screenshotUrl' | 'source'
-  > & {
-    author: Maybe<Pick<User, 'username' | 'avatarUrl'>>;
-    liked?: boolean;
-  } & Pick<Sandbox, 'forkCount' | 'likeCount'>;
-};
-
-export type DashboardAlbum = Pick<Album, 'id' | 'title'> & {
-  sandboxes: Array<
-    SandboxFragmentDashboardFragment & {
-      author: Maybe<Pick<User, 'username' | 'avatarUrl'>>;
-    } & Pick<Sandbox, 'forkCount' | 'likeCount'>
-  >;
 };
 
 export type DashboardBranch = {
@@ -153,7 +113,9 @@ export type DashboardNewBranch = {
     owner: string;
     name: string;
   };
+  workspaceId?: string;
   disabled?: boolean;
+  onClick: () => void;
 };
 
 export type DashboardRepository = {
@@ -164,6 +126,13 @@ export type DashboardRepository = {
 export type DashboardImportRepository = {
   type: 'import-repository';
   disabled?: boolean;
+  onImportClicked: () => void;
+};
+
+export type DashboardFooter = {
+  page: PT;
+  type: 'footer';
+  viewMode: ViewMode;
 };
 
 export type PageTypes = PT;
@@ -175,16 +144,14 @@ export type DashboardGridItem =
   | DashboardHeader
   | DashboardHeaderLink
   | DashboardNewFolder
-  | DashboardNewSandbox
   | DashboardSkeletonRow
-  | DashboardNewMasterBranch
   | DashboardBlank
-  | DashboardRepo
-  | DashboardRepoSandbox
+  | DashboardSyncedRepo
+  | DashboardSyncedRepoSandbox
   | DashboardBlankRowFill
   | DashboardSkeleton
-  | DashboardCommunitySandbox
   | DashboardBranch
   | DashboardNewBranch
   | DashboardRepository
-  | DashboardImportRepository;
+  | DashboardImportRepository
+  | DashboardFooter;

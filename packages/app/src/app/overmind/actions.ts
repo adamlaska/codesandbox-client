@@ -5,14 +5,15 @@ import {
   convertTypeToStatus,
 } from '@codesandbox/common/lib/utils/notifications';
 import { protocolAndHost } from '@codesandbox/common/lib/utils/url-generator';
+import { Sandbox } from '@codesandbox/common/lib/types';
 
-import { NotificationStatus } from '@codesandbox/notifications';
 import { withLoadApp } from './factories';
 import * as internalActions from './internalActions';
 import { TEAM_ID_LOCAL_STORAGE } from './utils/team';
 import { Context } from '.';
 import { DEFAULT_DASHBOARD_SANDBOXES } from './namespaces/dashboard/state';
 import { FinalizeSignUpOptions } from './effects/api/types';
+import { AuthOptions, GHScopeOption } from './utils/auth';
 
 export const internal = internalActions;
 
@@ -29,23 +30,11 @@ export const onInitializeOvermind = async (
 
   effects.live.initialize({
     provideJwtToken,
-    onApplyOperation: actions.live.applyTransformation,
-    onOperationError: actions.live.onOperationError,
   });
 
   effects.flows.initialize(overmindInstance.reaction);
 
-  // We consider recover mode something to be done when browser actually crashes, meaning there is no unmount
-  effects.browser.onUnload(() => {
-    if (state.editor.currentSandbox && state.connected) {
-      effects.moduleRecover.clearSandbox(state.editor.currentSandbox.id);
-    }
-  });
-
   effects.api.initialize({
-    getParsedConfigurations() {
-      return state.editor.parsedConfigurations;
-    },
     provideJwtToken() {
       if (process.env.LOCAL_SERVER || process.env.STAGING) {
         return localStorage.getItem('devJwt');
@@ -63,13 +52,18 @@ export const onInitializeOvermind = async (
   if (hasDevAuth) {
     gqlOptions.headers = () => ({
       Authorization: `Bearer ${localStorage.getItem('devJwt')}`,
+      'x-codesandbox-client': 'legacy-web',
+    });
+  } else {
+    gqlOptions.headers = () => ({
+      'x-codesandbox-client': 'legacy-web',
     });
   }
 
   effects.gql.initialize(gqlOptions, () => effects.live.socket);
 
   if (state.hasLogIn) {
-    await actions.internal.setActiveTeamFromUrlOrStore();
+    await actions.internal.initializeActiveWorkspace();
   }
 
   effects.notifications.initialize({
@@ -78,87 +72,13 @@ export const onInitializeOvermind = async (
     },
   });
 
-  effects.vercel.initialize({
-    getToken() {
-      return state.user?.integrations.zeit?.token ?? null;
-    },
-  });
-
-  effects.netlify.initialize({
-    getUserId() {
-      return state.user?.id ?? null;
-    },
-    provideJwtToken() {
-      if (process.env.LOCAL_SERVER || process.env.STAGING) {
-        return Promise.resolve(localStorage.getItem('devJwt'));
-      }
-
-      return provideJwtToken();
-    },
-  });
-
-  effects.githubPages.initialize({
-    provideJwtToken() {
-      if (process.env.LOCAL_SERVER || process.env.STAGING) {
-        return Promise.resolve(localStorage.getItem('devJwt'));
-      }
-      return provideJwtToken();
-    },
-  });
-
-  effects.prettyfier.initialize({
-    getCurrentModule() {
-      return state.editor.currentModule;
-    },
-    getPrettierConfig() {
-      let config = state.preferences.settings.prettierConfig;
-      const configFromSandbox = state.editor.currentSandbox?.modules.find(
-        module =>
-          module.directoryShortid == null && module.title === '.prettierrc'
-      );
-
-      if (configFromSandbox) {
-        config = JSON.parse(configFromSandbox.code);
-      }
-
-      return config;
-    },
-  });
-
-  effects.vscode.initialize({
-    getCurrentSandbox: () => state.editor.currentSandbox,
-    getCurrentModule: () => state.editor.currentModule,
-    getSandboxFs: () => state.editor.modulesByPath,
-    getCurrentUser: () => state.user,
-    onOperationApplied: actions.editor.onOperationApplied,
-    onCodeChange: actions.editor.codeChanged,
-    onSelectionChanged: selection => {
-      actions.editor.onSelectionChanged(selection);
-      actions.live.onSelectionChanged(selection);
-    },
-    onViewRangeChanged: actions.live.onViewRangeChanged,
-    onCommentClick: actions.comments.onCommentClick,
-    reaction: overmindInstance.reaction,
-    getState: (path: string) =>
-      path ? path.split('.').reduce((aggr, key) => aggr[key], state) : state,
-    getSignal: (path: string) =>
-      path.split('.').reduce((aggr, key) => aggr[key], actions),
-  });
-
-  effects.preview.initialize();
-
-  actions.internal.showPrivacyPolicyNotification();
   actions.internal.setViewModeForDashboard();
 
-  effects.browser.onWindowMessage(event => {
-    if (event.data.type === 'screenshot-requested-from-preview') {
-      actions.preview.createPreviewComment();
-    }
-  });
-
-  effects.browserExtension.hasExtension().then(hasExtension => {
-    actions.preview.setExtension(hasExtension);
-  });
+  try {
+    state.features = await effects.api.getFeatures();
+  } catch {
+    // Just for safety so it doesn't crash the overmind initialize flow
+  }
 };
 
 export const appUnmounted = async ({ effects, actions }: Context) => {
@@ -233,24 +153,13 @@ export const connectionChanged = ({ state }: Context, connected: boolean) => {
 };
 
 type ModalName =
-  | 'githubPagesLogs'
-  | 'deleteWorkspace'
-  | 'deleteDeployment'
-  | 'deleteSandbox'
   | 'feedback'
-  | 'forkServerModal'
-  | 'liveSessionEnded'
-  | 'netlifyLogs'
   | 'preferences'
-  | 'searchDependencies'
-  | 'share'
-  | 'signInForTemplates'
   | 'userSurvey'
-  | 'liveSessionEnded'
   | 'sandboxPicker'
   | 'minimumPrivacy'
-  | 'addMemberToWorkspace'
-  | 'legacyPayment';
+  | 'import'
+  | 'create';
 
 export const modalOpened = (
   { state, effects }: Context,
@@ -258,19 +167,32 @@ export const modalOpened = (
     modal: ModalName;
     message?: string;
     itemId?: string;
+    repoToImport?: { owner: string; name: string };
+    sandboxIdToFork?: string;
   }
 ) => {
   effects.analytics.track('Open Modal', { modal: props.modal });
   state.currentModal = props.modal;
   if (props.modal === 'preferences' && props.itemId) {
     state.preferences.itemId = props.itemId;
+  }
+  if (props.modal === 'create') {
+    state.currentModalItemId = props.itemId;
+    state.sandboxIdToFork = props.sandboxIdToFork || null;
   } else {
     state.currentModalMessage = props.message || null;
+  }
+
+  if (props.modal === 'import') {
+    state.repoToImport = props.repoToImport || null;
   }
 };
 
 export const modalClosed = ({ state }: Context) => {
   state.currentModal = null;
+  state.currentModalMessage = null;
+  state.repoToImport = null;
+  state.sandboxIdToFork = null;
 };
 
 export const signInClicked = (
@@ -279,14 +201,6 @@ export const signInClicked = (
 ) => {
   state.signInModalOpen = true;
   state.cancelOnLogin = props?.onCancel ?? null;
-};
-
-export const signInWithRedirectClicked = (
-  { state }: Context,
-  redirectTo: string
-) => {
-  state.signInModalOpen = true;
-  state.redirectOnLogin = redirectTo;
 };
 
 export const toggleSignInModal = ({ state }: Context) => {
@@ -298,25 +212,9 @@ export const toggleSignInModal = ({ state }: Context) => {
 
 export const signInButtonClicked = async (
   { actions, state }: Context,
-  options: {
-    useExtraScopes?: boolean;
-    provider: 'apple' | 'google' | 'github';
-  }
+  options: AuthOptions
 ) => {
-  const { useExtraScopes, provider } = options || {};
-  if (!useExtraScopes) {
-    await actions.internal.signIn({
-      provider,
-      useExtraScopes: false,
-    });
-    state.signInModalOpen = false;
-    state.cancelOnLogin = null;
-    return;
-  }
-  await actions.internal.signIn({
-    useExtraScopes,
-    provider,
-  });
+  await actions.internal.signIn(options);
   state.signInModalOpen = false;
   state.cancelOnLogin = null;
 };
@@ -348,41 +246,6 @@ export const removeNotification = ({ state }: Context, id: number) => {
   state.notifications.splice(notificationToRemoveIndex, 1);
 };
 
-export const signInVercelClicked = async ({
-  state,
-  effects: { browser, api, notificationToast },
-  actions,
-}: Context) => {
-  state.isLoadingVercel = true;
-  const popup = browser.openPopup('/auth/zeit', 'sign in');
-  const data: { code: string } = await browser.waitForMessage('signin');
-
-  popup.close();
-
-  if (data && data.code) {
-    try {
-      state.user = await api.createVercelIntegration(data.code);
-      await actions.deployment.internal.getVercelUserDetails();
-    } catch (error) {
-      actions.internal.handleError({
-        message: 'Could not authorize with Vercel',
-        error,
-      });
-    }
-  } else {
-    notificationToast.error('Could not authorize with Vercel');
-  }
-
-  state.isLoadingVercel = false;
-};
-
-export const signOutVercelClicked = async ({ state, effects }: Context) => {
-  if (state.user?.integrations?.zeit) {
-    await effects.api.signoutVercel();
-    state.user.integrations.zeit = null;
-  }
-};
-
 export const authTokenRequested = async ({ actions }: Context) => {
   await actions.internal.authorize();
 };
@@ -395,30 +258,21 @@ export const setPendingUserId = ({ state }: Context, id: string) => {
   state.pendingUserId = id;
 };
 
-export const signInGithubClicked = async ({ state, actions }: Context) => {
+export const signInGithubClicked = async (
+  { state, actions }: Context,
+  includedScopes: GHScopeOption
+) => {
   state.isLoadingGithub = true;
-  await actions.internal.signIn({ useExtraScopes: true, provider: 'github' });
+  await actions.internal.signIn({ includedScopes, provider: 'github' });
   state.isLoadingGithub = false;
-  if (state.editor.currentSandbox?.originalGit) {
-    actions.git.loadGitSource();
-  }
-};
-
-export const signInGoogleClicked = async ({ actions }: Context) => {
-  await actions.internal.signIn({ provider: 'google' });
-};
-
-export const signInAppleClicked = async ({ actions }: Context) => {
-  await actions.internal.signIn({ provider: 'apple' });
 };
 
 export const signOutClicked = async ({ state, effects, actions }: Context) => {
   effects.analytics.track('Sign Out', {});
-  state.workspace.openedWorkspaceItem = 'files';
-  if (state.live.isLive) {
-    actions.live.internal.disconnect();
-  }
   await effects.api.signout();
+  effects.browser.storage.remove(TEAM_ID_LOCAL_STORAGE);
+  effects.router.clearWorkspaceId();
+
   identify('signed_in', false);
   document.cookie = 'signedIn=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
   document.cookie =
@@ -450,34 +304,6 @@ export const track = (
   effects.analytics.track(name, data);
 };
 
-export const refetchSandboxInfo = async ({
-  actions,
-  effects,
-  state,
-}: Context) => {
-  const sandbox = state.editor.currentSandbox;
-
-  if (!sandbox?.id) {
-    return;
-  }
-
-  const updatedSandbox = await effects.api.getSandbox(sandbox.id);
-
-  sandbox.collection = updatedSandbox.collection;
-  sandbox.owned = updatedSandbox.owned;
-  sandbox.userLiked = updatedSandbox.userLiked;
-  sandbox.title = updatedSandbox.title;
-  sandbox.description = updatedSandbox.description;
-  sandbox.team = updatedSandbox.team;
-  sandbox.roomId = updatedSandbox.roomId;
-  sandbox.authorization = updatedSandbox.authorization;
-  sandbox.privacy = updatedSandbox.privacy;
-  sandbox.featureFlags = updatedSandbox.featureFlags;
-  sandbox.npmRegistries = updatedSandbox.npmRegistries;
-
-  await actions.editor.internal.initializeSandbox(sandbox);
-};
-
 export const acceptTeamInvitation = (
   { effects, actions }: Context,
   {
@@ -491,8 +317,6 @@ export const acceptTeamInvitation = (
   effects.analytics.track('Team - Invitation Accepted', {});
 
   actions.internal.trackCurrentTeams();
-
-  effects.notificationToast.success(`Accepted invitation to ${teamName}`);
 };
 
 export const rejectTeamInvitation = (
@@ -528,20 +352,8 @@ export const setActiveTeam = async (
     try {
       await actions.getActiveTeamInfo();
     } catch (e) {
-      let personalWorkspaceId = state.personalWorkspaceId;
-      if (!personalWorkspaceId) {
-        const res = await effects.gql.queries.getPersonalWorkspaceId({});
-        personalWorkspaceId = res.me?.personalWorkspaceId;
-      }
-      if (personalWorkspaceId) {
-        effects.notificationToast.add({
-          title: 'Could not find current workspace',
-          message: "We've switched you to your personal workspace",
-          status: NotificationStatus.WARNING,
-        });
-        // Something went wrong while fetching the workspace
-        actions.setActiveTeam({ id: personalWorkspaceId! });
-      }
+      // Reset the active workspace if something goes wrong
+      actions.internal.setFallbackWorkspace();
     }
   }
 
@@ -554,9 +366,12 @@ export const getActiveTeamInfo = async ({
   actions,
 }: Context) => {
   if (!state.activeTeam) {
-    await actions.internal.setActiveTeamFromUrlOrStore();
+    await actions.internal.initializeActiveWorkspace();
   }
 
+  // The getTeam query below used to fail because we weren't sure if the id in
+  // the localStorage or url was valid. We check this now when initializing the
+  // team, so this shouldn't error anymore.
   const team = await effects.gql.queries.getTeam({
     teamId: state.activeTeam,
   });
@@ -572,20 +387,6 @@ export const getActiveTeamInfo = async ({
   return currentTeam;
 };
 
-export const openCreateSandboxModal = (
-  { actions }: Context,
-  props: {
-    collectionId?: string;
-    initialTab?: 'import';
-  }
-) => {
-  actions.modals.newSandboxModal.open(props);
-};
-
-export const openCreateTeamModal = ({ state }: Context) => {
-  state.currentModal = 'newTeam';
-};
-
 export const validateUsername = async (
   { effects, state }: Context,
   userName: string
@@ -599,17 +400,17 @@ export const validateUsername = async (
 type SignUpOptions = Omit<FinalizeSignUpOptions, 'id'>;
 export const finalizeSignUp = async (
   { effects, actions, state }: Context,
-  { username, name, role, usage }: SignUpOptions
+  options: SignUpOptions
 ) => {
   if (!state.pendingUser) return;
   try {
-    await effects.api.finalizeSignUp({
+    const { primaryTeamId } = await effects.api.finalizeSignUp({
       id: state.pendingUser.id,
-      username,
-      name,
-      role,
-      usage,
+      ...options,
     });
+
+    state.newUserFirstWorkspaceId = primaryTeamId;
+
     window.postMessage(
       {
         type: 'signin',
@@ -626,7 +427,7 @@ export const finalizeSignUp = async (
 
 export const setLoadingAuth = async (
   { state }: Context,
-  provider: 'apple' | 'google' | 'github'
+  provider: 'apple' | 'google' | 'github' | 'sso'
 ) => {
   state.loadingAuth[provider] = !state.loadingAuth[provider];
 };
@@ -637,6 +438,54 @@ export const getSandboxesLimits = async ({ effects, state }: Context) => {
   state.sandboxesLimits = limits;
 };
 
-export const openCancelSubscriptionModal = ({ state }: Context) => {
-  state.currentModal = 'subscriptionCancellation';
+export const clearNewUserFirstWorkspaceId = ({ state }: Context) => {
+  state.newUserFirstWorkspaceId = null;
+};
+
+export const gotUploadedFiles = async (
+  { state, actions, effects }: Context,
+  message: string
+) => {
+  const modal = 'storageManagement';
+  effects.analytics.track('Open Modal', { modal });
+  state.currentModalMessage = message;
+  state.currentModal = modal;
+
+  try {
+    const uploadedFilesInfo = await effects.api.getUploads();
+
+    state.uploadedFiles = uploadedFilesInfo.uploads;
+    state.maxStorage = uploadedFilesInfo.maxSize;
+    state.usedStorage = uploadedFilesInfo.currentSize;
+  } catch (error) {
+    actions.internal.handleError({
+      message: 'Unable to get uploaded files information',
+      error,
+    });
+  }
+};
+
+export const createRepoFiles = ({ effects }: Context, sandbox: Sandbox) => {
+  return effects.git.export(sandbox);
+};
+
+export const deleteUploadedFile = async (
+  { actions, effects, state }: Context,
+  id: string
+) => {
+  if (!state.uploadedFiles) {
+    return;
+  }
+  const index = state.uploadedFiles.findIndex(file => file.id === id);
+  const removedFiles = state.uploadedFiles.splice(index, 1);
+
+  try {
+    await effects.api.deleteUploadedFile(id);
+  } catch (error) {
+    state.uploadedFiles.splice(index, 0, ...removedFiles);
+    actions.internal.handleError({
+      message: 'Unable to delete uploaded file',
+      error,
+    });
+  }
 };

@@ -3,7 +3,6 @@
 // const SentryWebpackPlugin = require('@sentry/webpack-plugin');
 const merge = require('webpack-merge');
 const webpack = require('webpack');
-const ImageminPlugin = require('imagemin-webpack-plugin').default;
 const SWPrecacheWebpackPlugin = require('sw-precache-webpack-plugin');
 const TerserJSPlugin = require('terser-webpack-plugin');
 const { BundleAnalyzerPlugin } = require('webpack-bundle-analyzer');
@@ -40,33 +39,7 @@ module.exports = merge(commonConfig, {
     minimizer: [
       new TerserJSPlugin({
         terserOptions: {
-          parse: {
-            // We want terser to parse ecma 8 code. However, we don't want it
-            // to apply any minification steps that turns valid ecma 5 code
-            // into invalid ecma 5 code. This is why the 'compress' and 'output'
-            // sections only apply transformations that are ecma 5 safe
-            // https://github.com/facebook/create-react-app/pull/4234
-            ecma: 8,
-          },
-          compress: {
-            ecma: 5,
-            warnings: false,
-            // Disabled because of an issue with Uglify breaking seemingly valid code:
-            // https://github.com/facebook/create-react-app/issues/2376
-            // Pending further investigation:
-            // https://github.com/mishoo/UglifyJS2/issues/2011
-            comparisons: false,
-            // Disabled because of an issue with Terser breaking valid code:
-            // https://github.com/facebook/create-react-app/issues/5250
-            // Pending further investigation:
-            // https://github.com/terser-js/terser/issues/120
-            inline: 2,
-          },
-          mangle: {
-            safari10: true,
-          },
           output: {
-            ecma: 5,
             comments: false,
             // Turned on because emoji and regex is not minified properly using default
             // https://github.com/facebook/create-react-app/issues/2488
@@ -256,9 +229,10 @@ module.exports = merge(commonConfig, {
         // },
         {
           urlPattern: /api\/v1\/dependencies/,
-          handler: 'fastest',
+          handler: 'cacheFirst',
           options: {
             cache: {
+              // A day
               maxAgeSeconds: 60 * 60 * 24,
               name: 'dependency-version-cache',
             },
@@ -268,7 +242,7 @@ module.exports = merge(commonConfig, {
           // These should be dynamic, since it's not loaded from this domain
           // But from the root domain
           urlPattern: /codesandbox\.io\/static\/js\//,
-          handler: 'fastest',
+          handler: 'cacheFirst',
           options: {
             cache: {
               // A day
@@ -279,7 +253,7 @@ module.exports = merge(commonConfig, {
         },
         {
           urlPattern: /\.amazonaws\.com\/prod\/package/,
-          handler: 'fastest',
+          handler: 'cacheFirst',
           options: {
             cache: {
               // a week
@@ -290,9 +264,10 @@ module.exports = merge(commonConfig, {
         },
         {
           urlPattern: /prod-packager-packages\.codesandbox\.io/,
-          handler: 'fastest',
+          handler: 'cacheFirst',
           options: {
             cache: {
+              // a week
               maxAgeSeconds: 60 * 60 * 24 * 7,
               name: 'dependency-files-cache',
             },
@@ -382,11 +357,6 @@ module.exports = merge(commonConfig, {
           to: 'public/sse-hooks/[name].[contenthash].[ext]',
         },
       ],
-    }),
-    new ImageminPlugin({
-      pngquant: {
-        quality: '95-100',
-      },
     }),
     // isMaster &&
     //   new SentryWebpackPlugin({
