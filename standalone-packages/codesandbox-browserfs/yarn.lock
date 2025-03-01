@@ -633,12 +633,10 @@ async-each@^1.0.1:
   resolved "https://registry.yarnpkg.com/async-each/-/async-each-1.0.1.tgz#19d386a1d9edc6e7c1c85d388aedbcc56d33602d"
   integrity sha1-GdOGodntxufByF04iu28xW0zYC0=
 
-async-es@~2.6.1:
-  version "2.6.2"
-  resolved "https://registry.yarnpkg.com/async-es/-/async-es-2.6.2.tgz#1bc79ae70d2b53fd65f1ceeb6e117eb8f94ae934"
-  integrity sha512-0ZVb6fiKgUHsfM509U8a3AmDJ/Bjuc2ZbPK38yBk0luemdIxMZuM3nNMWtPwpobN67nEu71xJ4NWUoWKhVSk5Q==
-  dependencies:
-    lodash-es "^4.17.11"
+async-es@~3.0.0:
+  version "3.0.1"
+  resolved "https://registry.yarnpkg.com/async-es/-/async-es-3.0.1.tgz#db88eef01f73a190a7bed0c01203a7198df508a3"
+  integrity sha512-CWGbsCDbDA7ORWGg0myrnOw7nTseSvSgXwLXW1+DHUaeBzpTVxVqlM0gzngEQcu7CJdY1waBVuuomEbUFn2VJA==
 
 async-limiter@~1.0.0:
   version "1.0.0"
@@ -3427,11 +3425,6 @@ locate-path@^3.0.0:
   dependencies:
     p-locate "^3.0.0"
     path-exists "^3.0.0"
-
-lodash-es@^4.17.11:
-  version "4.17.11"
-  resolved "https://registry.yarnpkg.com/lodash-es/-/lodash-es-4.17.11.tgz#145ab4a7ac5c5e52a3531fb4f310255a152b4be0"
-  integrity sha512-DHb1ub+rMjjrxqlB3H56/6MXtm1lSksDp2rA2cNWjG8mlDUYFhUj3Di2Zn5IwSU87xLv8tNIQ7sSwE/YOX/D/Q==
 
 lodash@^4.14.0, lodash@^4.5.0, lodash@^4.6.1, lodash@^4.8.0:
   version "4.17.4"
