@@ -21,7 +21,7 @@
     "event-stream": "^3.3.4",
     "gulp": "^3.9.1",
     "gulp-typedoc": "^2.2.0",
-    "http-server": "^0.11.1",
+    "http-server": "^0.11.2",
     "monaco-css": "2.2.0",
     "monaco-editor-core": "0.14.6",
     "monaco-html": "2.2.0",
@@ -31,7 +31,7 @@
     "rimraf": "^2.6.2",
     "typedoc": "^0.11.1",
     "typescript": "^3.0.1",
-    "uncss": "^0.16.2",
+    "uncss": "^0.17.0",
     "vinyl": "^0.5.3"
   },
   "dependencies": {}
