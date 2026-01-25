@@ -718,7 +718,7 @@
 	"dependencies": {
 		"appdirectory": "0.1.0",
 		"diff-match-patch": "1.0.4",
-		"lodash": "4.17.11",
+		"lodash": "4.17.23",
 		"mkdirp": "0.5.1",
 		"neovim": "4.2.1",
 		"untildify": "3.0.3",
@@ -743,10 +743,10 @@
 		"mocha": "6.0.2",
 		"plugin-error": "1.0.1",
 		"prettier": "1.16.4",
-		"sinon": "7.2.7",
+		"sinon": "21.0.1",
 		"tslint": "5.14.0",
 		"typescript": "3.3.3333",
-		"vscode": "1.1.30"
+		"vscode": "1.1.37"
 	},
 	"__metadata": {
 		"id": "d96e79c6-8b25-4be3-8545-0e0ecefcae03",
