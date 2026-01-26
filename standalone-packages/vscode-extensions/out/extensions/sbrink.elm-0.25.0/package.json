@@ -88,18 +88,18 @@
 		"@types/lodash": "^4.14.118",
 		"@types/mocha": "^2.2.32",
 		"@types/node": "^6.0.50",
-		"mocha": "^2.3.3",
+		"mocha": "^10.6.0",
 		"prettier": "^1.5.3",
 		"typescript": "^2.4.0",
-		"vscode": "1.1.0"
+		"vscode": "1.1.37"
 	},
 	"dependencies": {
 		"elm-module-parser": "0.1.12",
 		"elm-oracle": "^0.2.0",
-		"lodash": "^4.17.11",
+		"lodash": "^4.17.23",
 		"request": "^2.69.0",
 		"rimraf": "^2.5.2",
-		"tslint": "^5.4.3",
+		"tslint": "^5.20.0",
 		"vscode-uri": "^1.0.0",
 		"ws": "^3.0.0"
 	},
