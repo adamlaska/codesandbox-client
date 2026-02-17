@@ -269,7 +269,7 @@
     "@babel/preset-typescript": "^7.3.3",
     "@babel/register": "^7.13.16",
     "@divyenduz/ts-graphql-plugin": "^0.1.0",
-    "@graphql-codegen/cli": "^1.15.4",
+    "@graphql-codegen/cli": "^2.0.0",
     "@graphql-codegen/fragment-matcher": "^1.15.4",
     "@graphql-codegen/typescript": "^1.15.4",
     "@graphql-codegen/typescript-graphql-files-modules": "^1.15.4",
